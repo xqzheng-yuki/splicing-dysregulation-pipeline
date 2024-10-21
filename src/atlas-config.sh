@@ -3,6 +3,7 @@
 ## top level
 BASE_DIR="/mnt/gtklab01"
 XQ_DIR="${BASE_DIR}/xiaoqing"
+READS_FILE="${XQ_DIR}/sample_name.txt"
 ## This sets up the common configuration for files on atlas.
 
 STAR_INPUT_DIR="${XQ_DIR}/star"

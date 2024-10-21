@@ -18,8 +18,8 @@ echo $READS_FILE
 # run salmon for each sample selective alignment (decoy mode)
 while read SAMPLE_NAME; do
     salmon quant -l A -i $INDEX_DIR \
-    -1 $READS_DIR/${SAMPLE_NAME}_1.fq.gz \
-    -2 $READS_DIR/${SAMPLE_NAME}_2.fq.gz \
+    -1 $RNA_READS_DIR/${SAMPLE_NAME}_1.fq.gz \
+    -2 $RNA_READS_DIR/${SAMPLE_NAME}_2.fq.gz \
     --useVBOpt --writeUnmappedNames \
     -o $SALMON_OUTPUT_DIR/$SAMPLE_NAME --threads 8
     done < $READS_FILE

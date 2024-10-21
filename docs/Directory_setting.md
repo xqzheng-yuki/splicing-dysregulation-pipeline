@@ -1,5 +1,22 @@
 Directory setting:
 
+Real Common:
+$READS_FILE
+
 Salmon:
+$INDEX_DIR
+$RNA_READS_DIR
 $SALMON_OUTPUT_DIR
-$READS_DIR
+
+filter-fastq:
+$RNA_READS_DIR
+$SALMON_OUTPUT_DIR
+$UNMAPPED_SEQ_DIR
+
+star-all:
+$GENOME_DIR
+$UNMAPPEDSEQ_DIR
+$UNMAPPED_BAM_DIR
+
+bigwig:
+$UNMAPPED_BAM_DIR

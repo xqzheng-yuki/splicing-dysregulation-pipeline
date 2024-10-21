@@ -8,14 +8,16 @@ READS_FILE="${XQ_DIR}/sample_name.txt"
 
 STAR_INPUT_DIR="${XQ_DIR}/star"
 
-## filter fastq
-RESULT_DIR="${XQ_DIR}/salmon/full_output"
-STAR_OUTPUT_DIR="${XQ_DIR}/star/data"
-
 ## salmon
 INDEX_DIR="${XQ_DIR}/salmon/decoy/index"
-READS_DIR="${BASE_DIR}/linglab/tdp43/fastq"
+RNA_READS_DIR="${BASE_DIR}/linglab/tdp43/fastq"
 SALMON_OUTPUT_DIR="${XQ_DIR}/salmon/full_output"
 
+## filter fastq
+RESULT_DIR="${XQ_DIR}/salmon/full_output"
+UNMAPPED_SEQ_DIR="${XQ_DIR}/star/data"
+
 ## star-all
-GENOME_DIR="/mnt/gtklab01/linglab/mmusculus_annotation_files/STAR_v2.7.9a_index_mmusculus_gencode.vM29"
+# pre-establish genome index
+GENOME_DIR="${BASE_DIR}/linglab/mmusculus_annotation_files/STAR_v2.7.9a_index_mmusculus_gencode.vM29"
+UNMAPPED_BAM_DIR="${XQ_DIR}/star/results"

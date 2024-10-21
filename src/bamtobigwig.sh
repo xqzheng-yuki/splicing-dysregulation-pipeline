@@ -1,8 +1,8 @@
 #!/bin/bash
 
-INPUT_DIR="/mnt/gtklab01/xiaoqing/star"
+UNMAPPED_BAM_DIR="/mnt/gtklab01/xiaoqing/star"
 
-cd $INPUT_DIR
+cd $UNMAPPED_BAM_DIR
 
 for file in unmappedAligned.sortedByCoord.out_CTX*; do
     part_of_filename=$(echo "$file" | grep -o 'CTX_[^\.]*')

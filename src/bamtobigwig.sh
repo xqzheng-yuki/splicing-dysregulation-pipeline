@@ -1,6 +1,9 @@
 #!/bin/bash
 
-UNMAPPED_BAM_DIR="/mnt/gtklab01/xiaoqing/star"
+## the actual name of the script directory
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+source "${SCRIPT_DIR}/atlas-config.sh"
 
 cd $UNMAPPED_BAM_DIR
 

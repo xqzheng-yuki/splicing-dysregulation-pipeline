@@ -41,6 +41,8 @@ vignettes/*.pdf
 
 # pkgdown site
 docs/
+!docs/README.md
+!docs/Directory_setting.md
 
 # translation temp files
 po/*~

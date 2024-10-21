@@ -5,7 +5,7 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 source "${SCRIPT_DIR}/atlas-config.sh"
 
-#mkdir -p $SALMON_OUTPUT_DIR
+mkdir -p $SALMON_OUTPUT_DIR
 
 # activate conda environment
 source ~/miniconda3/etc/profile.d/conda.sh

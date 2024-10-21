@@ -16,3 +16,6 @@ STAR_OUTPUT_DIR="${XQ_DIR}/star/data"
 INDEX_DIR="${XQ_DIR}/salmon/decoy/index"
 READS_DIR="${BASE_DIR}/linglab/tdp43/fastq"
 SALMON_OUTPUT_DIR="${XQ_DIR}/salmon/full_output"
+
+## star-all
+GENOME_DIR="/mnt/gtklab01/linglab/mmusculus_annotation_files/STAR_v2.7.9a_index_mmusculus_gencode.vM29"

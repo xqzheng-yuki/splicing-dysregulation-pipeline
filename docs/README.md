@@ -21,13 +21,7 @@
     - one sequence name per line for each names (eg. `CTX_104_unmapped_seq_1.fq`, `CTX_104_unmapped_seq_2.fq`)
 ### 3.`star-all.sh`
 - Usage
-    > STAR --runMode alignReads \
-        --genomeDir $GENOME_DIR \
-        --readFilesIn $ONEFILES $TWOFILES \
-        --outSAMattrRGline $RGLINE \
-        --outFileNamePrefix $OUTPUT_DIR/unmapped \
-        --outSAMtype BAM SortedByCoordinate \
-        --readFilesCommand zcat --runThreadN 8 --outSAMattributes MD NH XS --outSAMunmapped Within --twopassMode Basic
+    > sh star-all.sh
 - Main Output: unmappedAligned.sortedByCoord.out.bam
 - Notice:
     - used STAR index generate for previous project

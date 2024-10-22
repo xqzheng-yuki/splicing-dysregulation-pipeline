@@ -39,4 +39,3 @@ pwd
 
 cd $UNMAPPED_BAM_DIR/group
 samtools split -f '%*_%!.%.' unmappedAligned.sortedByCoord.out.bam
-samtools index

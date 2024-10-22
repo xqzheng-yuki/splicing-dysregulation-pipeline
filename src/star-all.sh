@@ -20,9 +20,9 @@ mkdir -p $UNMAPPED_BAM_DIR/group
 READS_TAG_FILE="/mnt/gtklab01/xiaoqing/sample_name_tag.txt"
 readarray -t samples < $READS_TAG_FILE 
 
-ONEFILES=$(printf "%s_unmapped_seq_1.fq.gz," ${samples[@]})
+ONEFILES=$(printf "%s_unmapped_seq_1.fq," ${samples[@]})
 ONEFILES=${ONEFILES::-1}
-TWOFILES=$(printf "%s_unmapped_seq_2.fq.gz," ${samples[@]})
+TWOFILES=$(printf "%s_unmapped_seq_2.fq," ${samples[@]})
 TWOFILES=${TWOFILES::-1}
 RGLINE=$(printf "ID:%s , " ${samples[@]})
 RGLINE=${RGLINE::-3}

@@ -8,6 +8,7 @@
 # Usage: sh star-all.sh
 # Version History:
 # v1.0 Initial release
+# v2.0 Make change to accept sorted input
 # Note: Ensure that the directory is the same or redirect by your need
 
 ## the actual name of the script directory
@@ -15,9 +16,9 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 source "${SCRIPT_DIR}/atlas-config.sh"
 
 # check if output directory exist
-mkdir -p $UNMAPPED_BAM_DIR
-
-readarray -t samples < $READS_FILE 
+mkdir -p $UNMAPPED_BAM_DIR/group
+READS_TAG_FILE="/mnt/gtklab01/xiaoqing/sample_name_tag.txt"
+readarray -t samples < $READS_TAG_FILE 
 
 ONEFILES=$(printf "%s_unmapped_seq_1.fq.gz," ${samples[@]})
 ONEFILES=${ONEFILES::-1}
@@ -26,12 +27,12 @@ TWOFILES=${TWOFILES::-1}
 RGLINE=$(printf "ID:%s , " ${samples[@]})
 RGLINE=${RGLINE::-3}
 
-cd $UNMAPPEDSEQ_DIR
+cd $UNMAPPED_SEQ_DIR
 
 STAR --runMode alignReads \
     --genomeDir $GENOME_DIR \
     --readFilesIn $ONEFILES $TWOFILES \
     --outSAMattrRGline $RGLINE \
-    --outFileNamePrefix $UNMAPPED_BAM_DIR/unmapped \
+    --outFileNamePrefix $UNMAPPED_BAM_DIR/group/unmapped \
     --outSAMtype BAM SortedByCoordinate \
-    --readFilesCommand zcat --runThreadN 8 --outSAMattributes MD NH XS --outSAMunmapped Within --twopassMode Basic
+    --readFilesCommand cat --runThreadN 8 --outSAMattributes MD NH XS --outSAMunmapped Within --twopassMode Basic

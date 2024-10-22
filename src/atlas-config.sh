@@ -15,7 +15,8 @@ SALMON_OUTPUT_DIR="${XQ_DIR}/salmon/full_output"
 
 ## filter fastq
 RESULT_DIR="${XQ_DIR}/salmon/full_output"
-UNMAPPED_SEQ_DIR="${XQ_DIR}/star/data"
+UNMAPPED_UNISEQ_DIR="${XQ_DIR}/star/data"
+UNMAPPED_SEQ_DIR="${XQ_DIR}/star/group_data"
 
 ## star-all
 # pre-establish genome index

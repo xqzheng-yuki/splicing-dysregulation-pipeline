@@ -28,11 +28,15 @@ RGLINE=$(printf "ID:%s , " ${samples[@]})
 RGLINE=${RGLINE::-3}
 
 cd $UNMAPPED_SEQ_DIR
+pwd
+# STAR --runMode alignReads \
+#     --genomeDir $GENOME_DIR \
+#     --readFilesIn $ONEFILES $TWOFILES \
+#     --outSAMattrRGline $RGLINE \
+#     --outFileNamePrefix $UNMAPPED_BAM_DIR/group/unmapped \
+#     --outSAMtype BAM SortedByCoordinate \
+#     --readFilesCommand cat --runThreadN 8 --outSAMattributes MD NH XS --outSAMunmapped Within --twopassMode Basic
 
-STAR --runMode alignReads \
-    --genomeDir $GENOME_DIR \
-    --readFilesIn $ONEFILES $TWOFILES \
-    --outSAMattrRGline $RGLINE \
-    --outFileNamePrefix $UNMAPPED_BAM_DIR/group/unmapped \
-    --outSAMtype BAM SortedByCoordinate \
-    --readFilesCommand cat --runThreadN 8 --outSAMattributes MD NH XS --outSAMunmapped Within --twopassMode Basic
+cd $UNMAPPED_BAM_DIR/group
+samtools split -f '%*_%!.%.' unmappedAligned.sortedByCoord.out.bam
+samtools index

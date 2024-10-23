@@ -43,6 +43,7 @@ vignettes/*.pdf
 docs/*
 !docs/README.md
 !docs/Directory_setting.md
+!src/general_script.sh
 
 # translation temp files
 po/*~

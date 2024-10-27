@@ -1,28 +1,20 @@
-library(dplyr, lib.loc = "/usr/local/lib/R/site-library")
-library(gplots, lib.loc = "/usr/local/lib/R/site-library")
+# library(dplyr, lib.loc = "/usr/local/lib/R/site-library")
+# library(gplots, lib.loc = "/usr/local/lib/R/site-library")
 library(rtracklayer)
 library(GenomicFeatures)
 library(Gviz)
 
 
-setwd("/mnt/gtklab01/xiaoqing/star")
+setwd("/mnt/gtklab01/xiaoqing/star/results")
 
 # fetch GTF
 GRCh <- import("/mnt/gtklab01/linglab/mmusculus_annotation_files/gencode.vM29.primary_assembly.annotation.gtf")
-GRCh_S <- keepStandardChromosomes(GRCh,pruning.mode="coarse")
+GRCh <- keepStandardChromosomes(GRCh,pruning.mode="coarse")
 txdb <- makeTxDbFromGRanges(GRCh)
-txdb_S <- makeTxDbFromGRanges(GRCh_S)
 keytypes(txdb)
 columns(txdb)
-# modify chromosome names (?)
-## test-check naming style for gtf, bam, and bw
-# seqlevelsStyle(GRCh)
+
 # bamfile <- import("./unmappedAligned.sortedByCoord.out_CTX_104.bam")
-# bw <- import("./unmapped_CTX_104.bw")
-# seqlevels(bw)
-# seqlevels(GRCh)
-# seqlevels(bamfile)
-# Filter for standard chromosomes (?)
 
 ### Get bigwig
 import_bigwig <- function(file) {

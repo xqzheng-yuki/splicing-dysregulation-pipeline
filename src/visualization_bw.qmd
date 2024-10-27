@@ -71,36 +71,40 @@ import_bigwig <- function(file) {
   keepStandardChromosomes(bw_file,pruning.mode = "coarse")
 }
 # get all bigwig file in path
-bw_files <- list.files(path = ".", pattern = "^unmapped_CTX_[0-9]{3}_(d|m1|m2|u).bw$", full.names = TRUE)\
+bw_path <- list.files(path = ".", pattern = "^unmapped_CTX_[0-9]{3}_(d|m1|m2|u).bw$", full.names = TRUE)
 tags <- str_match(filenames,"^unmapped_CTX_[0-9]{3}_(d|m1|m2|u).bw$")
 tags <- matches[,2]
 # grouping tag
 treatment_group <- c(104,108,128,154)
 control_group <- c(120,125,147,148)
-treatment_bw <- map(bw_files[tags %in% treatment_group], ~ {
+treatment_bw <- map(bw_path[tags %in% treatment_group], ~ {
   bw_file <- import_bigwig(.x)
   bw_file
 })
-names(treatment_bw) <- basename(bw_files[tags %in% treatment_group])
-control_bw <- map(bw_files[tags %in% control_group], ~ {
+names(treatment_bw) <- basename(bw_path[tags %in% treatment_group])
+control_bw <- map(bw_path[tags %in% control_group], ~ {
   bw_file <- import_bigwig(.x)
   bw_file
 })
-names(control_bw) <- basename(bw_files[tags %in% control_group])
+names(control_bw) <- basename(bw_path[tags %in% control_group])
 ylim <- c(0,max(score(unlist(GRangesList(c(control_bw,treatment_bw))))))
 # indivial import
-for (i in seq_along(bw_files)){
+for (i in seq_along(bw_path)){
   tag <- tags[i]
   var_name <- paste0("CTX_",tag)
-  assign(var_name, import_bigwig(bw_files[i]))
+  assign(var_name, import_bigwig(bw_path[i]))
 }
 ```
 
 ```{r bam_needreset}
-bamFile <- system.file("extdata/test.bam", package = "Gviz")
-dTrack4 <- DataTrack(range = bamFile, genome = "hg19",
+bam_path <- list.files(path = ".", pattern = "^unmapped_CTX_[0-9]{3}_(d|m1|m2|u).bam$", full.names = TRUE)
+dTrack4 <- DataTrack(range = bam_path, genome = "hg19",
                      type = "l", name = "Coverage", window = -1, chromosome = "chr1")
-plotTracks(dTrack4, from = 189990000, to = 190000000)
+plotTracks(dTrack4)
+alignment_tracks <- lapply(bam_path, function(file) {
+  AlignmentsTrack(file, isPaired = TRUE)
+})
+plotTracks(alignment_tracks)
 ```
 
 ## Visualization

@@ -13,7 +13,7 @@ Here stores all the package needed for this visalization.
 #| warning: false
 #| message: false
 requiredCRAN <- c('tidyverse')
-requiredBiocPackages <- c('rtracklayer','GenomicFeatures','Gviz','ensembldb')
+requiredBiocPackages <- c('rtracklayer','GenomicFeatures','Gviz','ensembldb','Rsamtools','GenomicAlignments')
 # requiredBiocPackages <- 
 #   c('rtracklayer','GEOquery','BiocFileCache',
 #     'SummarizedExperiment','GenomicFeatures','Gviz','DESeq2',
@@ -25,24 +25,26 @@ purrr::walk(requiredBiocPackages, function(x) library(x,character.only = TRUE))
 ## Annotation data
 
 ```{r parse_gtf}
+#| echo: false
+#| warning: false
+#| message: false
 # traditional txdb input
 txdb <- 
   import("/mnt/gtklab01/linglab/mmusculus_annotation_files/gencode.vM29.primary_assembly.annotation.gtf") |>
   keepStandardChromosomes(pruning.mode="coarse") |>
   makeTxDbFromGRanges()
-
-keytypes(txdb)
-columns(txdb)
+genes(txdb) # 55357ranges,22seq
 
 # try out EnsDb one
 DB <- ensembldb::ensDbFromGtf("/mnt/gtklab01/linglab/mmusculus_annotation_files/gencode.vM29.primary_assembly.annotation.gtf",
-                              outfile=here("data","GRCm39_Ens106.sqlite"),
+                              outfile="~/Capstone/result/GRCm39_Ens106.sqlite",
+                              organism = "Mus_musculus",
                               genomeVersion ="GRCm39",
                               version=106)
 ens106 <- EnsDb(DB)
 seqlevelsStyle(ens106) <- "UCSC"
 GRCm39 <- ens106
-geneRanges_GRCm39 <- genes(GRCm39)
+geneRanges_GRCm39 <- genes(GRCm39) # 55414 ranges,39 seq
 ```
 
 ## Cytobands
@@ -50,14 +52,18 @@ geneRanges_GRCm39 <- genes(GRCm39)
 It seems like mouse cytobands are not informative enough, might not consider includes it in the plotting function.
 
 ```{r CytoBands}
-download.file(url="https://hgdownload.soe.ucsc.edu/goldenPath/mm39/database/cytoBandIdeo.txt.gz",
-              destfile=here("data","cytoBandIdeo.txt.gz"))
+#| echo: false
+#| warning: false
+#| message: false
 
-cytobands <- read_tsv(here('data/cytoBandIdeo.txt.gz'),
+download.file(url="https://hgdownload.soe.ucsc.edu/goldenPath/mm39/database/cytoBandIdeo.txt.gz",
+              destfile="~/Capstone/result/cytoBandIdeo.txt.gz")
+
+cytobands <- read_tsv("~/Capstone/result/cytoBandIdeo.txt.gz",
          col_names = c("chrom","chromStart","chromEnd","name","gieStain"))
 
-idt <- IdeogramTrack(chromosome="chr18",genome='mm39',bands=cytobands)
-plotTracks(idt,from=0,to=195154279)
+# idt <- IdeogramTrack(chromosome="chr18",genome='mm39',bands=cytobands)
+# plotTracks(idt,from=0,to=195154279)
 # seems like not much info
 ```
 
@@ -66,14 +72,19 @@ plotTracks(idt,from=0,to=195154279)
 Getting bam, bigwig involved.
 
 ```{r bigwig}
+#| echo: false
+#| warning: false
+
 import_bigwig <- function(file) {
   bw_file <- import.bw(file)
   keepStandardChromosomes(bw_file,pruning.mode = "coarse")
 }
+data_dir <- "/mnt/gtklab01/xiaoqing/star/results/group"
 # get all bigwig file in path
-bw_path <- list.files(path = ".", pattern = "^unmapped_CTX_[0-9]{3}_(d|m1|m2|u).bw$", full.names = TRUE)
-tags <- str_match(filenames,"^unmapped_CTX_[0-9]{3}_(d|m1|m2|u).bw$")
-tags <- matches[,2]
+bw_path <- list.files(path = data_dir, pattern = "^unmapped_CTX_[0-9]{3}_(d|m1|m2|u)\\.bw$", full.names = TRUE)
+tags <- str_match(basename(bw_path), "^unmapped_CTX_([0-9]{3})_(d|m1|m2|u)\\.bw$")
+combined_tags <- paste(tags[, 2], tags[, 3], sep = "_")
+tags <- tags[,2]
 # grouping tag
 treatment_group <- c(104,108,128,154)
 control_group <- c(120,125,147,148)
@@ -90,28 +101,72 @@ names(control_bw) <- basename(bw_path[tags %in% control_group])
 ylim <- c(0,max(score(unlist(GRangesList(c(control_bw,treatment_bw))))))
 # indivial import
 for (i in seq_along(bw_path)){
-  tag <- tags[i]
+  tag <- combined_tags[i]
   var_name <- paste0("CTX_",tag)
   assign(var_name, import_bigwig(bw_path[i]))
 }
 ```
 
 ```{r bam_needreset}
-bam_path <- list.files(path = ".", pattern = "^unmapped_CTX_[0-9]{3}_(d|m1|m2|u).bam$", full.names = TRUE)
-dTrack4 <- DataTrack(range = bam_path, genome = "hg19",
-                     type = "l", name = "Coverage", window = -1, chromosome = "chr1")
-plotTracks(dTrack4)
-alignment_tracks <- lapply(bam_path, function(file) {
-  AlignmentsTrack(file, isPaired = TRUE)
-})
-plotTracks(alignment_tracks)
+#| echo: false
+#| warning: false
+
+import_bam <- function(file) {
+  bam_file <- readGAlignments()
+  keepStandardChromosomes(bam_file,pruning.mode = "coarse")
+  bam_file
+}
+data_dir <- "/mnt/gtklab01/xiaoqing/star/results/group"
+bam_path <- list.files(path = data_dir, pattern = "^unmappedAligned.sortedByCoord.out_CTX_[0-9]{3}_(d|m1|m2|u).bam$", full.names = TRUE)
+dTrack4 <- DataTrack(range = bam_path, genome = "mm39",
+                     type = "l", name = "Coverage", window = -1)
+dTrack5 <- DataTrack(range = bam_path2, genome = "mm39",
+                     type = "l", name = "Coverage", window = -1, chromosome = "chr18")
+plotTracks(list(dTrack4),from = 0, to = 20005000, chromosome = "chr18")
+
+# transform all bam file into DataTrack stored in track_list
+track_list <- list()
+for (file in bam_path) {
+  track_name <- str_match(file, "unmappedAligned.sortedByCoord.out_(CTX_[0-9]{3}_(d|m1|m2|u))\\.bam$")[,2]
+  bam_track <- DataTrack(range = file, genome = "mm39",
+                         type = "l", name = track_name, window = -1)
+  track_list[[track_name]] <- bam_track
+}
+# Function to filter tracks by group and category (dmu)
+get_track_filter <- function(track_list, group_tags, condition_tag = NULL) {
+  if (is.null(condition_tag)) {
+    # no condition tag, only match group
+    pattern <- paste0("CTX_", group_tags, "_(d|m1|m2|u)")
+  } else {
+    # match with specific condition
+    pattern <- paste0("CTX_", group_tags, "_", condition_tag)
+  }
+  filter_tracks <- track_list[grepl(paste(pattern, collapse = "|"), names(track_list))]
+  for (i in seq_along(filter_tracks)) {
+    track_name <- names(filter_tracks)[i]  # Use the name derived from the file
+    filter_tracks[[i]] <- DataTrack(
+      range = track_list[[track_name]]@range,  # Assuming each track is a DataTrack
+      genome = "mm39",
+      type = "l",
+      name = track_name  # Assigning the name for the track
+    )
+  }
+  return(filter_tracks)
+}
+control_tracks <- get_track_filter(track_list, control_group)
+treatment_tracks <- get_track_filter(track_list, treatment_group)
+plotTracks(control_tracks, from = 80126311, to = 80151482, chromosome = "chr18", main = "Control Group")
 ```
 
 ## Visualization
 
 ```{r}
-plot_gene <- function(goi) {
-  gr <- (genes(GRCm39 |> ensembldb::filter(~gene_id == goi)))
+# plot_gene <- function(goi) {
+  # gr <- (genes(GRCm39 |> ensembldb::filter(~gene_id == goi)))
+  gr <- GRanges(seqnames = "chr18", 
+                      ranges = IRanges(start = 80126311, end = 80151482), 
+                      strand = "*")
+  
   ## let's make it 10% wider
   embiggen_factor <- round(width(gr)*0.1)
   start(gr) <- start(gr) - embiggen_factor
@@ -123,14 +178,11 @@ plot_gene <- function(goi) {
                      bands=cytobands,
                      from=start(gr),to=end(gr))
   show_track <- list(idt)
-  ### track test
-  #plotTracks(show_track,from=start(gr),to=end(gr))
   
   ## track:: genomic coordinates
   gaxis <- GenomeAxisTrack()
   show_track <- append(show_track,list(gaxis))
-  ### track test
-  #plotTracks(show_track,from=start(gr),to=end(gr))
+
   
   ## track:: current trxns (two choic now)
   grTrack <- GeneRegionTrack(txdb, 
@@ -139,16 +191,22 @@ plot_gene <- function(goi) {
                            end=end(gr), 
                            cex.group=0.4,
                            showId=TRUE)
-  grTrack2 <- GeneRegionTrack(ensembldb::filter(GRCh38, ~ gene_id == goi),
+  show_track <- append(show_track,list(grTrack))
+  # grTrack2 <- GeneRegionTrack(ensembldb::filter(GRCh38, ~ gene_id == goi),
                              name=gr$symbol)
-  show_track <- append(show_track,list(grTrack,grTrack2))
+  # show_track <- append(show_track,list(grTrack,grTrack2))
   
-  ## track:: 
-  treatment_dt <- OverlayTrack(map(treatment_bw, function(bw)
-    DataTrack(bw, type = 'polygon', name = 'treatment', ylim = ylim, alpha = 0.9,
-            col = 'blue', from = start(gr), to = end(gr))),
-    from = start(gr), to = end(gr))
-  show_track <- append(show_track,list(treatment_dt))
-  plotTracks(show_track,from=start(gr),to=end(gr))
+  ## track:: for bw
+  # treatment_dt <- OverlayTrack(map(treatment_bw, function(bw)
+  #   DataTrack(bw, type = 'polygon', name = 'treatment', ylim = ylim, alpha = 0.9,
+  #           col = 'blue', from = start(gr), to = end(gr))),
+  #   from = start(gr), to = end(gr))
+  # show_track <- append(show_track,list(treatment_dt))
   
+  ## track:: for bam
+  show_track2 <- append(show_track,control_tracks)
+  show_track2 <- append(show_track2,treatment_tracks)
+  
+  plotTracks(show_track2,from=start(gr),to=end(gr))
+  # }
 ```

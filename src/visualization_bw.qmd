@@ -118,11 +118,6 @@ import_bam <- function(file) {
 }
 data_dir <- "/mnt/gtklab01/xiaoqing/star/results/group"
 bam_path <- list.files(path = data_dir, pattern = "^unmappedAligned.sortedByCoord.out_CTX_[0-9]{3}_(d|m1|m2|u).bam$", full.names = TRUE)
-dTrack4 <- DataTrack(range = bam_path, genome = "mm39",
-                     type = "l", name = "Coverage", window = -1)
-dTrack5 <- DataTrack(range = bam_path2, genome = "mm39",
-                     type = "l", name = "Coverage", window = -1, chromosome = "chr18")
-plotTracks(list(dTrack4),from = 0, to = 20005000, chromosome = "chr18")
 
 # transform all bam file into DataTrack stored in track_list
 track_list <- list()
@@ -161,10 +156,11 @@ plotTracks(control_tracks, from = 80126311, to = 80151482, chromosome = "chr18",
 ## Visualization
 
 ```{r}
+  show_track <- list()
 # plot_gene <- function(goi) {
   # gr <- (genes(GRCm39 |> ensembldb::filter(~gene_id == goi)))
   gr <- GRanges(seqnames = "chr18", 
-                      ranges = IRanges(start = 80126311, end = 80151482), 
+                      ranges = IRanges(start = 80120000, end = 80151482), 
                       strand = "*")
   
   ## let's make it 10% wider
@@ -193,7 +189,7 @@ plotTracks(control_tracks, from = 80126311, to = 80151482, chromosome = "chr18",
                            showId=TRUE)
   show_track <- append(show_track,list(grTrack))
   # grTrack2 <- GeneRegionTrack(ensembldb::filter(GRCh38, ~ gene_id == goi),
-                             name=gr$symbol)
+                             # name=gr$symbol)
   # show_track <- append(show_track,list(grTrack,grTrack2))
   
   ## track:: for bw
@@ -204,9 +200,9 @@ plotTracks(control_tracks, from = 80126311, to = 80151482, chromosome = "chr18",
   # show_track <- append(show_track,list(treatment_dt))
   
   ## track:: for bam
-  show_track2 <- append(show_track,control_tracks)
-  show_track2 <- append(show_track2,treatment_tracks)
+  show_track <- append(show_track,control_tracks)
+  show_track <- append(show_track,treatment_tracks)
   
-  plotTracks(show_track2,from=start(gr),to=end(gr))
+  plotTracks(show_track,from=start(gr),to=end(gr))
   # }
 ```

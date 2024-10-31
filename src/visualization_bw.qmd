@@ -70,6 +70,14 @@ cytobands <- read_tsv("/mnt/gtklab01/xiaoqing/scaffold/cytoBandIdeo.txt.gz",
 #| warning: false
 #| message: false
 
+# direcotry set
+data_dir <- "/mnt/gtklab01/xiaoqing/star/results/group"
+
+# grouping tag
+treatment_group <- c(104,108,128,154)
+control_group <- c(120,125,147,148)
+condition_tag <- c("u","m1","m2","d")
+
 import_bigwig <- function(file) {
   bw_file <- import.bw(file)
   keepStandardChromosomes(bw_file,pruning.mode = "coarse")
@@ -85,6 +93,18 @@ get_track_filter <- function(track_list, group_tags, condition_tag = NULL) {
     pattern <- paste0("CTX_", group_tags, "_", condition_tag)
   }
   filter_tracks <- track_list[grepl(paste(pattern, collapse = "|"), names(track_list))]
+
+  ### try this out for ReferenceDataTrack
+  for (i in seq_along(filter_tracks)) {
+    track_name <- names(filter_tracks)[i]  # Use the name derived from the file
+    filter_tracks[[i]] <- DataTrack(
+      range = track_list[[track_name]]@file,
+      genome = "mm39",
+      type = "l",
+      name = track_name  # Assigning the name for the track
+    )
+  }
+
   return(filter_tracks)
 }
 
@@ -94,14 +114,15 @@ generate_shades <- function(base_color,condition_tag) {
   shades <- colorRampPalette(c("white", rgb(base_rgb[1], base_rgb[2], base_rgb[3])))(5)
   return(shades[2:length(shades)])
 }
-color_list <- distinctColorPalette(8)
-sample_ids <- c(control_group,treatment_group)
-sample_base_colors <- setNames(color_list, sample_ids)
 
-data_dir <- "/mnt/gtklab01/xiaoqing/star/results/group"
-# grouping tag
-treatment_group <- c(104,108,128,154)
-control_group <- c(120,125,147,148)
+control_shades <- generate_shades("#282A62")
+control_shades <- setNames(control_shades, condition_tag)
+treatment_shades <- generate_shades("#912C2C")
+treatment_shades <- setNames(treatment_shades, condition_tag)
+# color_list <- c(control_shades,treatment_shades)
+# sample_ids <- c(control_group,treatment_group)
+# sample_base_colors <- setNames(color_list, sample_ids)
+
 ```
 
 Getting bam, bigwig involved.

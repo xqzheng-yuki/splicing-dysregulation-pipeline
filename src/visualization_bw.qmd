@@ -98,13 +98,13 @@ get_track_filter <- function(track_list, group_tags, condition_tag = NULL) {
   for (i in seq_along(filter_tracks)) {
     track_name <- names(filter_tracks)[i]  # Use the name derived from the file
     filter_tracks[[i]] <- DataTrack(
-      range = track_list[[track_name]]@file,
+      range = track_list[[track_name]]@stream(file),
       genome = "mm39",
       type = "l",
       name = track_name  # Assigning the name for the track
     )
   }
-
+  
   return(filter_tracks)
 }
 
@@ -265,4 +265,6 @@ treatment_d_trk <- OverlayTrack(bw_treatment_d_tracks,from=start(gr),to=end(gr),
 control_d_trk <- OverlayTrack(bw_control_d_tracks,from=start(gr),to=end(gr),chromosome = as.character(chrom(gr)))
 
 plotTracks(list(treatment_d_trk,control_d_trk),from=start(gr),to=end(gr),chromosome = as.character(chrom(gr)))
+
+plotTracks(list(Trail_track,bw_track_list[["CTX_104_d"]],Trail_track_raw),from=start(gr),to=end(gr),chromosome = as.character(chrom(gr)))
 ```

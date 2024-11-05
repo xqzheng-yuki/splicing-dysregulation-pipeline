@@ -44,7 +44,8 @@ DB <- ensembldb::ensDbFromGtf("/mnt/gtklab01/linglab/mmusculus_annotation_files/
                               version=106)
 ens106 <- EnsDb(DB)
 seqlevelsStyle(ens106) <- "UCSC"
-GRCm39 <- keepStandardChromosomes(ens106,pruning.mode="coarse")
+GRCm39 <- ens106
+# GRCm39 <- keepStandardChromosomes(ens106,pruning.mode="coarse")
 geneRanges_GRCm39 <- genes(GRCm39) # 55414 ranges,39 seq
 ```
 
@@ -66,46 +67,42 @@ cytobands <- read_tsv("/mnt/gtklab01/xiaoqing/scaffold/cytoBandIdeo.txt.gz",
 
 ## Getting Additional Data
 
-```{r function_prep}
+```{r fix_para}
 #| warning: false
 #| message: false
 
-# direcotry set
+# directory set
 data_dir <- "/mnt/gtklab01/xiaoqing/star/results/group"
-
+ 
 # grouping tag
 treatment_group <- c(104,108,128,154)
 control_group <- c(120,125,147,148)
 condition_tag <- c("u","m1","m2","d")
 
+# color shades
+control_shades <- generate_shades("#282A62")
+treatment_shades <- generate_shades("#912C2C")
+
+```
+
+```{r actual_function}
+#| warning: false
+#| message: false
+
+## import a selected region of a bigwig file as BRG (single base range) object
 import_bigwig <- function(file,bw_selection) {
   bw_data <- BRGenomics::makeGRangesBRG(import.bw(file,selection=rtracklayer::BigWigSelection(bw_selection)))
   keepStandardChromosomes(bw_data,pruning.mode = "coarse")
 }
 
-# Function to filter tracks by group and category (dmu)
-get_track_filter <- function(track_list, group_tags, condition_tag = NULL) {
-  if (is.null(condition_tag)) {
-    # no condition tag, only match group
-    pattern <- paste0("CTX_", group_tags, "_(d|m1|m2|u)")
-  } else {
-    # match with specific condition
-    pattern <- paste0("CTX_", group_tags, "_", condition_tag)
-  }
-  filter_tracks <- track_list[grepl(paste(pattern, collapse = "|"), names(track_list))]
-
-  ### try this out for ReferenceDataTrack
-  for (i in seq_along(filter_tracks)) {
-    track_name <- names(filter_tracks)[i]  # Use the name derived from the file
-    filter_tracks[[i]] <- DataTrack(
-      range = track_list[[track_name]]@stream(file),
-      genome = "mm39",
-      type = "l",
-      name = track_name  # Assigning the name for the track
-    )
-  }
-  
-  return(filter_tracks)
+merge_treatment_bw <- function(selection_range,treatment_n,bwinfo=bw_fileinfo) {
+  bwinfo <- dplyr::filter(bwinfo,treatment==treatment_n)
+  bw_data <- split(map(bwinfo$bw_path,import_bigwig,bw_selection=selection_range),
+        bwinfo$tag)
+  bw_range <- map(bw_data, ~ {
+                  mergeGRangesData(.x,exact_overlaps = TRUE)
+    })
+  return(bw_range)
 }
 
 generate_shades <- function(base_color,condition_tag) {
@@ -115,14 +112,14 @@ generate_shades <- function(base_color,condition_tag) {
   return(shades[2:length(shades)])
 }
 
-control_shades <- generate_shades("#282A62")
-control_shades <- setNames(control_shades, condition_tag)
-treatment_shades <- generate_shades("#912C2C")
-treatment_shades <- setNames(treatment_shades, condition_tag)
-# color_list <- c(control_shades,treatment_shades)
-# sample_ids <- c(control_group,treatment_group)
-# sample_base_colors <- setNames(color_list, sample_ids)
-
+add_track <- function(new_track) {
+  if (is.list(new_track)) {
+    show_track <<- append(show_track,new_track)
+  } else {
+  show_track <<- append(show_track,list(new_track))
+  }
+  return(show_track)
+}
 ```
 
 Getting bam, bigwig involved.
@@ -130,59 +127,24 @@ Getting bam, bigwig involved.
 ```{r bigwig}
 #| warning: false
 #| message: false
-
-# get all bigwig file in path
-bw_path <- list.files(path = data_dir, pattern = "^unmapped_CTX_[0-9]{3}_(d|m1|m2|u)\\.bw$", full.names = TRUE)
-tags <- str_match(basename(bw_path), "^unmapped_CTX_([0-9]{3})_(d|m1|m2|u)\\.bw$")
-combined_tags <- paste(tags[, 2], tags[, 3], sep = "_")
-tags <- tags[,2]
+# directory set
+data_dir <- "/mnt/gtklab01/xiaoqing/star/results/group"
+ 
 # grouping tag
 treatment_group <- c(104,108,128,154)
 control_group <- c(120,125,147,148)
-treatment_bw <- map(bw_path[tags %in% treatment_group], ~ {
-  bw_file <- import_bigwig(.x)
-  bw_file
-})
-names(treatment_bw) <- basename(bw_path[tags %in% treatment_group])
-control_bw <- map(bw_path[tags %in% control_group], ~ {
-  bw_file <- import_bigwig(.x)
-  bw_file
-})
-names(control_bw) <- basename(bw_path[tags %in% control_group])
-ylim <- c(0,max(score(unlist(GRangesList(c(control_bw,treatment_bw))))))
-# indivial import
-for (i in seq_along(bw_path)){
-  tag <- combined_tags[i]
-  var_name <- paste0("CTX_",tag)
-  assign(var_name, import_bigwig(bw_path[i]))
-}
-```
-
-```{r bigwig}
-#| warning: false
-#| message: false
-
-bw_path <- list.files(path = data_dir, pattern = "^unmapped_CTX_[0-9]{3}_(d|m1|m2|u)\\.bw$", full.names = TRUE)
-bw_track_list <- list()
-for (file in bw_path) {
-  track_name <- str_match(basename(file), "^unmapped_(CTX_[0-9]{3}_(d|m1|m2|u))\\.bw$")[,2]
-  sample_num <- str_match(track_name, "CTX_([0-9]+)")[,2]
-  color_pattern <- sample_base_colors[[sample_num]]
-  bw_track <- DataTrack(range = file, genome = "mm39",
-                         type = "l", name = track_name, window = -1,
-                        col = color_pattern)
-  bw_track_list[[track_name]] <- bw_track
-}
-
-bw_control_tracks <- get_track_filter(bw_track_list, control_group)
-bw_control_d_tracks <- get_track_filter(bw_track_list, control_group,"d")
-bw_treatment_tracks <- get_track_filter(bw_track_list, treatment_group)
-bw_treatment_d_tracks <- get_track_filter(bw_track_list, treatment_group,"d")
+condition_tag <- c("u","m1","m2","d")
+ 
+bw_fileinfo <- expand_grid(tibble(treatment=rep(c("control","treatment"),each=4),
+       group=c(control_group,treatment_group)),
+       tag=condition_tag) |>
+  mutate(bw_path=glue::glue("{data_dir}/unmapped_CTX_{group}_{tag}.bw"))
 ```
 
 ```{r bam}
 #| echo: false
 #| warning: false
+#| eval: false
 
 bam_path <- list.files(path = data_dir, pattern = "^unmappedAligned.sortedByCoord.out_CTX_[0-9]{3}_(d|m1|m2|u).bam$", full.names = TRUE)
 
@@ -203,58 +165,73 @@ plotTracks(control_tracks, from = 80126311, to = 80151482, chromosome = "chr18",
 ## Visualization
 
 ```{r}
-  show_track <- list()
-# plot_gene <- function(goi) {
-  goi = "ENSMUSG00000053950.11"
-  gr <- geneRanges_GRCm39[goi]
+#| warning: false
+
+plot_gene <- function(goi) {
   
+  gr <- geneRanges_GRCm39[goi]
+  print(gr)
   ## let's make it 10% wider
   embiggen_factor <- round(width(gr)*0.1)
   start(gr) <- start(gr) - embiggen_factor
   end(gr) <- end(gr) + embiggen_factor
+  show_track <- list()
   
   ## first track:: cytobands
   idt <- IdeogramTrack(chromosome=as.character(chrom(gr)),
                      genome='mm39',
                      bands=cytobands,
                      from=start(gr),to=end(gr))
-  show_track <- list(idt)
+  add_track(idt)
+
+  ## track:: current trxns
+  grTrack <- GeneRegionTrack(ensembldb::filter(GRCm39, ~ gene_id == goi),
+                             name=gr$symbol,
+                             start=start(gr),
+                             end=end(gr),
+                             cex.group=0.4,
+                             showId=TRUE)
+  plotTracks(grTrack)
+  add_track(grTrack)
+  
+  ## track:: for bw
+  control_bw_data <-merge_treatment_bw(selection_range = gr,
+                                     treatment_n = "control")
+  ko_bw_data <-merge_treatment_bw(selection_range = gr,
+                                     treatment_n = "treatment")
+
+  control_datatrack <- map(names(control_bw_data),
+    function(n) {
+      color <- control_shades[match(n,names(control_bw_data))]
+      DataTrack(control_bw_data[[n]],
+                name = glue::glue("control_{n}"),
+                type="polygon",
+                # ylim=c(0,600),
+                fill.mountain=c("white",color),
+                col="black")
+    })
+  add_track(control_datatrack)
+
+  ko_datatrack <- map(names(ko_bw_data),
+    function(n) {
+      color <- treatment_shades[match(n,names(ko_bw_data))]
+      DataTrack(ko_bw_data[[n]],
+                name = glue::glue("treatment_{n}"),
+                type="polygon",
+                # ylim=c(0,600),
+                fill.mountain=c("white",color),
+                col="black")
+    })
+  add_track(ko_datatrack)
   
   ## track:: genomic coordinates
   gaxis <- GenomeAxisTrack()
-  show_track <- append(show_track,list(gaxis))
+  add_track(gaxis)
+  
+  plotTracks(show_track, cex.sampleNames = 0.6)
+}
 
-  
-  ## track:: current trxns (two choic now)
-  grTrack <- GeneRegionTrack(txdb, 
-                           chromosome = as.character(chrom(gr)),
-                           start=start(gr),
-                           end=end(gr), 
-                           cex.group=0.4,
-                           showId=TRUE)
-  show_track <- append(show_track,list(grTrack))
-  # grTrack2 <- GeneRegionTrack(ensembldb::filter(GRCh38, ~ gene_id == goi),
-                             # name=gr$symbol)
-  # show_track <- append(show_track,list(grTrack,grTrack2))
-  
-  ## track:: for bw
-  treatment_dt <- OverlayTrack(map(treatment_bw, function(bw) {
-    DataTrack(bw, type = 'l', name = 'treatment', ylim = ylim, alpha = 0.9,
-            col = 'blue', 
-            chromosome = as.character(chrom(gr)),
-            from = start(gr), to = end(gr)) 
-    }),
-    from = start(gr), to = end(gr))
-  show_track <- append(show_track,list(treatment_dt))
-  
-  ## track:: for bam
-  control_tracks_c <- OverlayTrack(trackList = control_tracks, name = "Control")
-  treatment_tracks_c <- OverlayTrack(trackList = treatment_tracks, name = "Treatment")
-  show_track <- append(show_track,control_tracks_c)
-  show_track <- append(show_track,treatment_tracks_c)
-  
-  plotTracks(show_track,from=start(gr),to=end(gr))
-  # }
+plot_gene("ENSMUSG00000026753.6")
 ```
 
 ```{r}

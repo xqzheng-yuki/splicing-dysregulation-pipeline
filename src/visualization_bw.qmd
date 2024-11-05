@@ -44,7 +44,7 @@ DB <- ensembldb::ensDbFromGtf("/mnt/gtklab01/linglab/mmusculus_annotation_files/
                               version=106)
 ens106 <- EnsDb(DB)
 seqlevelsStyle(ens106) <- "UCSC"
-GRCm39 <- ens106
+GRCm39 <- keepStandardChromosomes(ens106,pruning.mode="coarse")
 geneRanges_GRCm39 <- genes(GRCm39) # 55414 ranges,39 seq
 ```
 
@@ -78,9 +78,9 @@ treatment_group <- c(104,108,128,154)
 control_group <- c(120,125,147,148)
 condition_tag <- c("u","m1","m2","d")
 
-import_bigwig <- function(file) {
-  bw_file <- import.bw(file)
-  keepStandardChromosomes(bw_file,pruning.mode = "coarse")
+import_bigwig <- function(file,bw_selection = NULL) {
+  bw_data <- BRGenomics::makeGRangesBRG(import.bw(file,selection=rtracklayer::BigWigSelection(bw_selection)))
+  keepStandardChromosomes(bw_data,pruning.mode = "coarse")
 }
 
 # Function to filter tracks by group and category (dmu)
@@ -205,10 +205,8 @@ plotTracks(control_tracks, from = 80126311, to = 80151482, chromosome = "chr18",
 ```{r}
   show_track <- list()
 # plot_gene <- function(goi) {
-  # gr <- (genes(GRCm39 |> ensembldb::filter(~gene_id == goi)))
-  gr <- GRanges(seqnames = "chr18", 
-                      ranges = IRanges(start = 80120000, end = 80620000), 
-                      strand = "*")
+  goi = "ENSMUSG00000053950.11"
+  gr <- geneRanges_GRCm39[goi]
   
   ## let's make it 10% wider
   embiggen_factor <- round(width(gr)*0.1)

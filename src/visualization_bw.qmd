@@ -78,7 +78,7 @@ treatment_group <- c(104,108,128,154)
 control_group <- c(120,125,147,148)
 condition_tag <- c("u","m1","m2","d")
 
-import_bigwig <- function(file,bw_selection = NULL) {
+import_bigwig <- function(file,bw_selection) {
   bw_data <- BRGenomics::makeGRangesBRG(import.bw(file,selection=rtracklayer::BigWigSelection(bw_selection)))
   keepStandardChromosomes(bw_data,pruning.mode = "coarse")
 }

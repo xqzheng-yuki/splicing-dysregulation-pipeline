@@ -266,5 +266,20 @@ control_d_trk <- OverlayTrack(bw_control_d_tracks,from=start(gr),to=end(gr),chro
 
 plotTracks(list(treatment_d_trk,control_d_trk),from=start(gr),to=end(gr),chromosome = as.character(chrom(gr)))
 
-plotTracks(list(Trail_track,bw_track_list[["CTX_104_d"]],Trail_track_raw),from=start(gr),to=end(gr),chromosome = as.character(chrom(gr)))
+Trail_track_wr <- DataTrack(
+    range=keepStandardChromosomes(bw_track_list[["CTX_104_d"]]@stream(file),pruning.mode="coarse"),
+    genome = bw_track_list[["CTX_104_d"]]@genome,
+    chromosome = bw_track_list[["CTX_104_d"]]@chromosome,
+    type = "l",
+    window = -1,
+    name = "window raw track")
+
+Trail_track_w <- DataTrack(
+    range=bw_track_list[["CTX_104_d"]]@reference,
+    genome = bw_track_list[["CTX_104_d"]]@genome,
+    type = "l",
+    window = -1,
+    name = "window track 2")
+
+plotTracks(list(bw_track_list[["CTX_104_d"]],Trail_track,Trail_track_w,Trail_track_raw,Trail_track_wr),from=start(gr),to=end(gr),chromosome = as.character(chrom(gr)))
 ```

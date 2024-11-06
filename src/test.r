@@ -23,4 +23,6 @@ show_track <- append(show_track,list(grTrack))
 show_track <- append(show_track,control_datatrack)
 show_track <- append(show_track,ko_datatrack)
 show_track <- append(show_track,list(gaxis))
-plotTracks(show_track, cex.sampleNames = 0.6)
+
+
+

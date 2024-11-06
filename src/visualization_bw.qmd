@@ -14,29 +14,20 @@ Here stores all the package needed for this visalization.
 #| message: false
 requiredCRAN <- c('tidyverse')
 requiredBiocPackages <- c('rtracklayer','GenomicFeatures','Gviz','ensembldb','Rsamtools','GenomicAlignments','BRGenomics','randomcoloR')
-# requiredBiocPackages <- 
-#   c('rtracklayer','GEOquery','BiocFileCache',
-#     'SummarizedExperiment','GenomicFeatures','Gviz','DESeq2',
-#     'ensembldb')
+
 purrr::walk(requiredCRAN, function(x) library(x,character.only = TRUE))
 purrr::walk(requiredBiocPackages, function(x) library(x,character.only = TRUE))
 ```
 
 ## Annotation data
 
-We are using `gencode.vM29.primary_assembly.annotation.gtf` build one TxDB object `txdb` and one EnsDb object `GRCm39`.
+We are using `gencode.vM29.primary_assembly.annotation.gtf` build one EnsDb object `GRCm39`.
 
 ```{r parse_gtf}
 #| warning: false
 #| message: false
-# traditional txdb input
-txdb <- 
-  import("/mnt/gtklab01/linglab/mmusculus_annotation_files/gencode.vM29.primary_assembly.annotation.gtf") |>
-  keepStandardChromosomes(pruning.mode="coarse") |>
-  makeTxDbFromGRanges()
-genes(txdb) # 55357ranges,22seq
 
-# try out EnsDb one
+# EnsDb database
 DB <- ensembldb::ensDbFromGtf("/mnt/gtklab01/linglab/mmusculus_annotation_files/gencode.vM29.primary_assembly.annotation.gtf",
                               outfile="/mnt/gtklab01/xiaoqing/scaffold/GRCm39_Ens106.sqlite",
                               organism = "Mus_musculus",
@@ -45,7 +36,6 @@ DB <- ensembldb::ensDbFromGtf("/mnt/gtklab01/linglab/mmusculus_annotation_files/
 ens106 <- EnsDb(DB)
 seqlevelsStyle(ens106) <- "UCSC"
 GRCm39 <- ens106
-# GRCm39 <- keepStandardChromosomes(ens106,pruning.mode="coarse")
 geneRanges_GRCm39 <- genes(GRCm39) # 55414 ranges,39 seq
 ```
 
@@ -67,7 +57,7 @@ cytobands <- read_tsv("/mnt/gtklab01/xiaoqing/scaffold/cytoBandIdeo.txt.gz",
 
 ## Getting Additional Data
 
-```{r fix_para}
+```{r parameter}
 #| warning: false
 #| message: false
 
@@ -112,29 +102,26 @@ generate_shades <- function(base_color,condition_tag) {
   return(shades[2:length(shades)])
 }
 
-add_track <- function(new_track) {
+add_track <- function(new_track,tracks=list()) {
   if (is.list(new_track)) {
-    show_track <<- append(show_track,new_track)
+    tracks <- append(tracks,new_track)
   } else {
-  show_track <<- append(show_track,list(new_track))
+  tracks <- append(tracks,list(new_track))
   }
-  return(show_track)
+  return(tracks)
+}
+
+get_gene_id <- function(geneName) {
+  geneRanges_GRCm39[which(elementMetadata(geneRanges_GRCm39)$gene_name==geneName)]$gene_id
 }
 ```
 
-Getting bam, bigwig involved.
+Getting bigwig information.
 
 ```{r bigwig}
 #| warning: false
 #| message: false
-# directory set
-data_dir <- "/mnt/gtklab01/xiaoqing/star/results/group"
- 
-# grouping tag
-treatment_group <- c(104,108,128,154)
-control_group <- c(120,125,147,148)
-condition_tag <- c("u","m1","m2","d")
- 
+
 bw_fileinfo <- expand_grid(tibble(treatment=rep(c("control","treatment"),each=4),
        group=c(control_group,treatment_group)),
        tag=condition_tag) |>
@@ -164,25 +151,31 @@ plotTracks(control_tracks, from = 80126311, to = 80151482, chromosome = "chr18",
 
 ## Visualization
 
-```{r}
+```{r vis_function}
 #| warning: false
 
 plot_gene <- function(goi) {
   
+  if (!startsWith(goi,"ENSMUSG")) {
+  message("Not inputing gene id, trying to change into gene id")
+  goi <- get_gene_id(goi)
+  message(paste0("The gene id is ",goi))
+  }
+
   gr <- geneRanges_GRCm39[goi]
-  print(gr)
+  
   ## let's make it 10% wider
   embiggen_factor <- round(width(gr)*0.1)
   start(gr) <- start(gr) - embiggen_factor
   end(gr) <- end(gr) + embiggen_factor
-  show_track <- list()
+ 
   
   ## first track:: cytobands
   idt <- IdeogramTrack(chromosome=as.character(chrom(gr)),
                      genome='mm39',
                      bands=cytobands,
                      from=start(gr),to=end(gr))
-  add_track(idt)
+  show_track <- add_track(idt)
 
   ## track:: current trxns
   grTrack <- GeneRegionTrack(ensembldb::filter(GRCm39, ~ gene_id == goi),
@@ -191,8 +184,7 @@ plot_gene <- function(goi) {
                              end=end(gr),
                              cex.group=0.4,
                              showId=TRUE)
-  plotTracks(grTrack)
-  add_track(grTrack)
+  show_track <- add_track(grTrack,show_track)
   
   ## track:: for bw
   control_bw_data <-merge_treatment_bw(selection_range = gr,
@@ -210,7 +202,7 @@ plot_gene <- function(goi) {
                 fill.mountain=c("white",color),
                 col="black")
     })
-  add_track(control_datatrack)
+  show_track <- add_track(control_datatrack,show_track)
 
   ko_datatrack <- map(names(ko_bw_data),
     function(n) {
@@ -222,39 +214,15 @@ plot_gene <- function(goi) {
                 fill.mountain=c("white",color),
                 col="black")
     })
-  add_track(ko_datatrack)
+  show_track <- add_track(ko_datatrack,show_track)
   
   ## track:: genomic coordinates
-  gaxis <- GenomeAxisTrack()
-  add_track(gaxis)
-  
+  show_track <- add_track(GenomeAxisTrack(),show_track)
   plotTracks(show_track, cex.sampleNames = 0.6)
 }
-
-plot_gene("ENSMUSG00000026753.6")
 ```
 
-```{r}
-treatment_d_trk <- OverlayTrack(bw_treatment_d_tracks,from=start(gr),to=end(gr),chromosome = as.character(chrom(gr)),name = "treatment")
-
-control_d_trk <- OverlayTrack(bw_control_d_tracks,from=start(gr),to=end(gr),chromosome = as.character(chrom(gr)))
-
-plotTracks(list(treatment_d_trk,control_d_trk),from=start(gr),to=end(gr),chromosome = as.character(chrom(gr)))
-
-Trail_track_wr <- DataTrack(
-    range=keepStandardChromosomes(bw_track_list[["CTX_104_d"]]@stream(file),pruning.mode="coarse"),
-    genome = bw_track_list[["CTX_104_d"]]@genome,
-    chromosome = bw_track_list[["CTX_104_d"]]@chromosome,
-    type = "l",
-    window = -1,
-    name = "window raw track")
-
-Trail_track_w <- DataTrack(
-    range=bw_track_list[["CTX_104_d"]]@reference,
-    genome = bw_track_list[["CTX_104_d"]]@genome,
-    type = "l",
-    window = -1,
-    name = "window track 2")
-
-plotTracks(list(bw_track_list[["CTX_104_d"]],Trail_track,Trail_track_w,Trail_track_raw,Trail_track_wr),from=start(gr),to=end(gr),chromosome = as.character(chrom(gr)))
+```{r test_example}
+plot_gene("ENSMUSG00000026753.6")
+plot_gene("Ube2d1")
 ```

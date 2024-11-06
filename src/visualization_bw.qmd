@@ -217,7 +217,7 @@ plot_gene <- function(goi) {
   
   ## track:: genomic coordinates
   show_track <- add_track(GenomeAxisTrack(),show_track)
-  plotTracks(show_track, cex.sampleNames = 0.6)
+  plotTracks(show_track, cex.sampleNames = 0.6, main = gr$symbol)
 }
 ```
 

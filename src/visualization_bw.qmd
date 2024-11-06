@@ -57,24 +57,6 @@ cytobands <- read_tsv("/mnt/gtklab01/xiaoqing/scaffold/cytoBandIdeo.txt.gz",
 
 ## Getting Additional Data
 
-```{r parameter}
-#| warning: false
-#| message: false
-
-# directory set
-data_dir <- "/mnt/gtklab01/xiaoqing/star/results/group"
- 
-# grouping tag
-treatment_group <- c(104,108,128,154)
-control_group <- c(120,125,147,148)
-condition_tag <- c("u","m1","m2","d")
-
-# color shades
-control_shades <- generate_shades("#282A62")
-treatment_shades <- generate_shades("#912C2C")
-
-```
-
 ```{r actual_function}
 #| warning: false
 #| message: false
@@ -114,6 +96,23 @@ add_track <- function(new_track,tracks=list()) {
 get_gene_id <- function(geneName) {
   geneRanges_GRCm39[which(elementMetadata(geneRanges_GRCm39)$gene_name==geneName)]$gene_id
 }
+```
+
+```{r parameter}
+#| warning: false
+#| message: false
+
+# directory set
+data_dir <- "/mnt/gtklab01/xiaoqing/star/results/group"
+ 
+# grouping tag
+treatment_group <- c(104,108,128,154)
+control_group <- c(120,125,147,148)
+condition_tag <- c("u","m1","m2","d")
+
+# color shades
+control_shades <- generate_shades("#282A62")
+treatment_shades <- generate_shades("#912C2C")
 ```
 
 Getting bigwig information.

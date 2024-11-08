@@ -7,6 +7,7 @@
 - align and map RNA-seq read using [Salmon](https://github.com/COMBINE-lab/salmon) with selective alignment mode to get unmapped sequence
 - before run script `salmon.sh` please make sure a conda environment named "salmon" that included salmon existed.
     - `conda create -n salmon salmon`
+- input decoy index retrieved from [refgenie](http://refgenomes.databio.org/v3/genomes/splash/0f10d83b1050c08dd53189986f60970b92a315aa7a16a6f1) `asset name:tag`: "salmon_partial_sa_index:default"
 - output: 
     1. Quantification File
     2. Auxiliary Files - **`unmapped_names.txt`**

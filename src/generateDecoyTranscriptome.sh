@@ -30,14 +30,24 @@ set -e
 ## on an Ubuntu system.
 ###############################################
 
-threads=1
+threads=8
 awk="awk"
 bedtools="bedtools"
 mashmap="mashmap"
+gffread="gffread"
+
+#######Test stage#######
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source "${SCRIPT_DIR}/atlas-config.sh"
+## Define Variables
+gtffile=$GTFfiles
+genomefile=$FASTAfiles
+outfolder="${XQ_DIR}/salmon/index/decoy2"
+#######Test stage#######
 
 # Argument Parsing
 print_usage_and_exit () {
-    echo "Usage: $0 [-j <N> =1 default] [-b <bedtools binary path> =bedtools default] [-m <mashmap binary path> =mashmap default] -a <gtf file> -g <genome fasta> -t <txome fasta> -o <output path>"
+    echo "Usage: $0 [-j <N> =1 default] [-b <bedtools binary path> =bedtools default] [-m <mashmap binary path> =mashmap default] [-f <gffread binary path> =gffread default] -a <gtf file> -g <genome fasta> -o <output path>"
     exit 1
 }
 
@@ -70,9 +80,13 @@ while getopts ":a:b:o:j:h:g:t:m:" opt; do
             genomefile=`realpath $OPTARG`
             echo "-g <Genome fasta> = $genomefile"
             ;;
-        t)
-            txpfile=`realpath $OPTARG`
-            echo "-t <Transcriptome fasta> = $txpfile"
+        # t)
+        #     txpfile=`realpath $OPTARG`
+        #     echo "-t <Transcriptome fasta> = $txpfile"
+        #     ;;
+        f)
+            gffread=`realpath $OPTARG`
+            echo "-f <gffread binary> = $gffread"
             ;;
         h)
             print_usage_and_exit
@@ -89,7 +103,7 @@ while getopts ":a:b:o:j:h:g:t:m:" opt; do
 done
 
 # Required arguments
-if [ -z "$gtffile" -o -z "$outfolder" -o -z "$genomefile" -o -z "$txpfile" -o -z "$mashmap" -o -z "$awk" -o -z "$bedtools" -o -z "$threads" ]
+if [ -z "$gtffile" -o -z "$outfolder" -o -z "$genomefile" -o -z "$mashmap" -o -z "$awk" -o -z "$bedtools" -o -z "$gffread" -o -z "$threads" ]
 then
     echo "Error: missing required argument(s)"
     print_usage_and_exit
@@ -98,17 +112,29 @@ fi
 mkdir -p $outfolder
 cd $outfolder
 
-# extracting all the exonic features to mask
-echo "[1/10] Extracting exonic features from the gtf"
-$awk -v OFS='\t' '{if ($3=="exon") {print $1,$4,$5}}' $gtffile > exons.bed
+if [ -z "$txpfile"]
+then
+    echo "Extracting transciptome sequence based on the provided gtf and full genome sequence"
+    gffread -g $genomefile $gtffile -w transcripts.fasta
+    txpfile="transcripts.fasta"
+fi
+
+# extracting all the exonic and intronic features to mask
+echo "[1/10] Extracting exonic and purely intronic features from the gtf"
+echo "[1/2] Extracting exonic featrues from the gtf"
+$gffread $gtffile -T -o- | awk '$3 == "exon" {gsub(/[[:punct:]]/,"",$14); print $1 "\t" $4 "\t" $5 "\t" $14 "\t" "0" "\t" $7}' > exon_out.bed
+$bedtools sort -i exon_out.bed | $bedtools merge > exon_merge.bed
+echo "[2/2] Extracting intronic featrues from the gtf"
+$awk -v OFS='\t' '{if ($3=="gene") {print $1,$4,$5}}' $gtffile | bedtools sort > genes.bed
+$bedtools subtract -a genes.bed -b exon_merge.bed -nonamecheck > intronic.bed
 
 # masking the exonic regions from the genome
 echo "[2/10] Masking the genome fasta"
-$bedtools maskfasta -fi $genomefile -bed exons.bed -fo reference.masked.genome.fa
+$bedtools maskfasta -fi $genomefile -bed exon_merge.bed -fo reference.masked.genome.fa
 
 # aligning the transcriptome to the masked genome
 echo "[3/10] Aligning transcriptome to genome"
-$mashmap -r reference.masked.genome.fa -q $txpfile -t $threads --pi 80 -s 500
+$mashmap -r $outfolder/reference.masked.genome.fa -q $outfolder/$txpfile -t $threads --pi 80 -s 500
 
 # extracting the bed files from the reported alignment
 echo "[4/10] Extracting intervals from mashmap alignments"

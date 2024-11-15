@@ -2,8 +2,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 # Load data from Mashmap output file
-cd $outfolder
-data_file = 'mashmap.out'
+data_file = '/mnt/gtklab01/xiaoqing/salmon/index/decoy2/mashmap.out'
 
 
 # Define column names based on the provided format
@@ -14,7 +13,7 @@ columns = [
 ]
 
 # Read the file into a pandas DataFrame
-df = pd.read_csv(data_file, sep='\s+', names=columns)
+df = pd.read_csv(data_file, sep='\\s+', names=columns)
 
 # Plotting
 plt.figure(figsize=(10, 6))
@@ -30,4 +29,7 @@ plt.title('Mashmap Genome Mapping Dot Plot')
 plt.colorbar(label='Identity')
 
 # Show the plot
-plt.show()
+# plt.show()
+
+# Save the plot as a .jpg file
+plt.savefig("mashmap_dotplot.jpg", format='jpg', dpi=300)

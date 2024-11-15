@@ -168,7 +168,7 @@ cat $txpfile decoy.fa intron_chr.fa > gentrome.fa
 
 # extracting the names of the decoys
 echo "[9/10] Extracting decoy sequence ids"
-grep -h ">" decoy.fa intron_chr.fa | $awk '{print substr($1,2); }' > decoys.txt
+grep -h ">" decoy.fa intron_chr.fa | $awk '{print substr($1,2); }' > decoysNintronic.txt
 
 # removing extra files
 echo "[10/10] Removing temporary files"

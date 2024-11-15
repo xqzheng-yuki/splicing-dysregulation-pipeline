@@ -23,10 +23,11 @@ trap 'abort' 0
 set -e
 
 ###############################################
-## It assumes awk, bedtools and mashmap is 
-## available.
+## It assumes awk, bedtools, gffread and mashmap 
+## is available.
 ## We have tested this script with 
-## awk 4.1.3, bedtools v2.28.0 and mashmap v2.0 
+## awk 4.1.3, bedtools v2.28.0, gffread v0.11.7
+## and mashmap v2.0 
 ## on an Ubuntu system.
 ###############################################
 
@@ -47,7 +48,7 @@ outfolder="${XQ_DIR}/salmon/index/decoy2"
 
 # Argument Parsing
 print_usage_and_exit () {
-    echo "Usage: $0 [-j <N> =1 default] [-b <bedtools binary path> =bedtools default] [-m <mashmap binary path> =mashmap default] [-f <gffread binary path> =gffread default] -a <gtf file> -g <genome fasta> -o <output path>"
+    echo "Usage: $0 [-j <N> =1 default] [-b <bedtools binary path> =bedtools default] [-m <mashmap binary path> =mashmap default] [-f <gffread binary path> =gffread default] -a <gtf file> -g <genome fasta> -t <Transcriptome fasta> -o <output path>"
     exit 1
 }
 
@@ -80,10 +81,10 @@ while getopts ":a:b:o:j:h:g:t:m:" opt; do
             genomefile=`realpath $OPTARG`
             echo "-g <Genome fasta> = $genomefile"
             ;;
-        # t)
-        #     txpfile=`realpath $OPTARG`
-        #     echo "-t <Transcriptome fasta> = $txpfile"
-        #     ;;
+        t)
+            txpfile=`realpath $OPTARG`
+            echo "-t <Transcriptome fasta> = $txpfile"
+            ;;
         f)
             gffread=`realpath $OPTARG`
             echo "-f <gffread binary> = $gffread"
@@ -112,29 +113,35 @@ fi
 mkdir -p $outfolder
 cd $outfolder
 
+# Make transcriptome if not provided
 if [ -z "$txpfile"]
 then
     echo "Extracting transciptome sequence based on the provided gtf and full genome sequence"
-    gffread -g $genomefile $gtffile -w transcripts.fasta
-    txpfile="transcripts.fasta"
+    gffread -g $genomefile $gtffile -w transcripts.fa
+    txpfile="transcripts.fa"
 fi
 
 # extracting all the exonic and intronic features to mask
 echo "[1/10] Extracting exonic and purely intronic features from the gtf"
-echo "[1/2] Extracting exonic featrues from the gtf"
+echo "[1/2] Extracting exonic featrues"
 $gffread $gtffile -T -o- | awk '$3 == "exon" {gsub(/[[:punct:]]/,"",$14); print $1 "\t" $4 "\t" $5 "\t" $14 "\t" "0" "\t" $7}' > exon_out.bed
 $bedtools sort -i exon_out.bed | $bedtools merge > exon_merge.bed
-echo "[2/2] Extracting intronic featrues from the gtf"
+echo "[2/2] Extracting intronic featrues"
 $awk -v OFS='\t' '{if ($3=="gene") {print $1,$4,$5}}' $gtffile | bedtools sort > genes.bed
 $bedtools subtract -a genes.bed -b exon_merge.bed -nonamecheck > intronic.bed
+$bedtools sort -i intronic.bed | $bedtools merge > intronic_merge.bed
+$bedtools getfasta -fi $genomefile -bed intronic_merge.bed -fo intronic_found.fa
 
 # masking the exonic regions from the genome
 echo "[2/10] Masking the genome fasta"
 $bedtools maskfasta -fi $genomefile -bed exon_merge.bed -fo reference.masked.genome.fa
 
 # aligning the transcriptome to the masked genome
+# for our sample, took 56 minute with 8 threads
 echo "[3/10] Aligning transcriptome to genome"
-$mashmap -r $outfolder/reference.masked.genome.fa -q $outfolder/$txpfile -t $threads --pi 80 -s 500
+$mashmap -r reference.masked.genome.fa -q $txpfile -t $threads --pi 80 -s 500
+
+# Considering adopt perl script provided by mashmap for visualization of the location (which using gnuplot)
 
 # extracting the bed files from the reported alignment
 echo "[4/10] Extracting intervals from mashmap alignments"
@@ -148,21 +155,25 @@ $bedtools merge -i genome_found.sorted.bed > genome_found_merged.bed
 echo "[6/10] Extracting sequences from the genome"
 $bedtools getfasta -fi reference.masked.genome.fa -bed genome_found_merged.bed -fo genome_found.fa
 
-# concatenating the sequence at per chromsome level to extract decoy sequences
-echo "[7/10] Concatenating to get decoy sequences"
+# concatenating the sequence at per chromsome level to extract decoy sequences and intronic sequences
+echo "[7/10] Concatenating to get decoy and intronic sequences"
+echo "[1/2] Concatenating decoy sequences"
 $awk '{a=$0; getline;split(a, b, ":");  r[b[1]] = r[b[1]]""$0} END { for (k in r) { print k"\n"r[k] } }' genome_found.fa > decoy.fa
+echo "[2/2] Concatenating intronic sequences"
+$awk '{a=$0; getline;split(a, b, ":");  r[b[1]] = r[b[1]]""$0} END { for (k in r) { print k"_intronic\n"r[k] } }' intronic_found.fa > intron_chr.fa
 
-# concatenating decoys to transcriptome
+# concatenating decoys intronics to transcriptome
 echo "[8/10] Making gentrome"
-cat $txpfile decoy.fa > gentrome.fa
+cat $txpfile decoy.fa intron_chr.fa > gentrome.fa
 
 # extracting the names of the decoys
 echo "[9/10] Extracting decoy sequence ids"
-grep ">" decoy.fa | $awk '{print substr($1,2); }' > decoys.txt
+grep -h ">" decoy.fa intron_chr.fa | $awk '{print substr($1,2); }' > decoys.txt
 
 # removing extra files
 echo "[10/10] Removing temporary files"
-rm exons.bed reference.masked.genome.fa mashmap.out genome_found.sorted.bed genome_found_merged.bed genome_found.fa decoy.fa reference.masked.genome.fa.fai
+rm exon_out.bed intronic.bed reference.masked.genome.fa reference.masked.genome.fa.fai genome_found.sorted.bed
+# rm mashmap.out genome_found_merged.bed genome_found.fa decoy.fa intron_chr.fa
 
 trap : 0
 echo >&2 '

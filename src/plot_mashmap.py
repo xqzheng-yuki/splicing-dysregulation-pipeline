@@ -2,8 +2,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 # Load data from Mashmap output file
-# cd $outfolder
-# data_file = 'mashmap.out'
+cd $outfolder
+data_file = 'mashmap.out'
 
 
 # Define column names based on the provided format

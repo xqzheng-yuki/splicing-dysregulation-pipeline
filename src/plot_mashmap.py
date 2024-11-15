@@ -2,13 +2,14 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 # Load data from Mashmap output file
-cd $outfolder
-data_file = 'mashmap.out'
+# cd $outfolder
+# data_file = 'mashmap.out'
+
 
 # Define column names based on the provided format
 columns = [
-    'query_name', 'length', '0_based_start', '0_based_end', 
-    'strand', 'chr_id', 'length', 'start', 'end', 
+    'query_id', 'query_len', 'query_start', 'query_end', 
+    'strand', 'ref_id', 'ref_len', 'ref_start', 'ref_end',
     'mapping_quality', 'identity', 'kc', 'fc'
 ]
 

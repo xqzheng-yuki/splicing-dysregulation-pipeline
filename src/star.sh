@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# File: star-all.sh
+# File: star.sh
 # Purpose: This script align and map the unmapped read
 # Dependencies: bash, STAR
 # Input: STAR index file, compressed fastq file

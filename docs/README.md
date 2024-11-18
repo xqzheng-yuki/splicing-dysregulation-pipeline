@@ -44,7 +44,7 @@ Note: Refer to the script documentation for detailed instructions on setup, requ
 
 ### 2. Map Reads with STAR Alignment
 
-The `star-all.sh` script uses the STAR aligner to map unmapped reads, producing a sorted BAM file and separate files based on read groups or unmapped tags.
+The `star.sh` script uses the STAR aligner to map unmapped reads, producing a sorted BAM file and separate files based on read groups or unmapped tags.
 
 Note: 
 - Refer to the script documentation for detailed instructions on setup, required inputs, and expected outputs.

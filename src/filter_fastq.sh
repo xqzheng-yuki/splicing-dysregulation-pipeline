@@ -16,7 +16,7 @@ index=1
 while read SAMPLE_NAME; do
     echo "Sample ${index}: Working on ${SAMPLE_NAME}."
     # actural extract
-    cd $SALMON_OUTPUT_DIR/$SAMPLE_NAME/$AUX_DIR
+    cd $SALMON_OUTPUT_DIR/$DATE/$SAMPLE_NAME/$AUX_DIR
     for file in ./unmapped_*.lst
     do
         type=$(echo "${file}" | cut -d"_" -f2 | cut -d"." -f1)

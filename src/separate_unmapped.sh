@@ -19,7 +19,7 @@ PROJECT_DIR=$(dirname ${SCRIPT_DIR})
 while read SAMPLE_NAME; do
     echo "start working on ${SAMPLE_NAME}"
     cd $SALMON_OUTPUT_DIR/$DATE/${SAMPLE_NAME}/"aux_info"
-    INPUT_FILE="$RESULT_DIR/$DATE/${SAMPLE_NAME}/aux_info/unmapped_names.txt"
+    INPUT_FILE="$SALMON_OUTPUT_DIR/$DATE/${SAMPLE_NAME}/aux_info/unmapped_names.txt"
     for UNMAPPED_TYPE in d m1 m2 u ; do
 	    echo "working on $UNMAPPED_TYPE"
 	    OUTPUT_FILE="./unmapped_${UNMAPPED_TYPE}.lst"

@@ -10,7 +10,7 @@
 # v1.0 - Initial test release
 # v2.0 - Initial general release
 # Note: Ensure that the directory is the same or redirect by your need
-
+set -o pipefail
 ## the actual name of the script directory
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 source "${SCRIPT_DIR}/atlas-config.sh"
@@ -18,8 +18,8 @@ PROJECT_DIR=$(dirname ${SCRIPT_DIR})
 
 while read SAMPLE_NAME; do
     echo "start working on ${SAMPLE_NAME}"
-    cd $RESULT_DIR/${SAMPLE_NAME}/"aux_info"
-    INPUT_FILE="$RESULT_DIR/${SAMPLE_NAME}/aux_info/unmapped_names.txt"
+    cd $SALMON_OUTPUT_DIR/$DATE/${SAMPLE_NAME}/"aux_info"
+    INPUT_FILE="$RESULT_DIR/$DATE/${SAMPLE_NAME}/aux_info/unmapped_names.txt"
     for UNMAPPED_TYPE in d m1 m2 u ; do
 	    echo "working on $UNMAPPED_TYPE"
 	    OUTPUT_FILE="./unmapped_${UNMAPPED_TYPE}.lst"

@@ -5,7 +5,7 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 source "${SCRIPT_DIR}/atlas-config.sh"
 
-mkdir -p $SALMON_OUTPUT_DIR/$DATE
+mkdir -p $SALMON_OUTPUT_DIR/$DATE"_2"
 
 # activate conda environment
 source ~/miniconda3/etc/profile.d/conda.sh
@@ -21,6 +21,6 @@ while read SAMPLE_NAME; do
     -1 $RNA_READS_DIR/${SAMPLE_NAME}_1.fq.gz \
     -2 $RNA_READS_DIR/${SAMPLE_NAME}_2.fq.gz \
     --useVBOpt --writeUnmappedNames \
-    -o $SALMON_OUTPUT_DIR/$DATE/$SAMPLE_NAME --threads 8
+    -o $SALMON_OUTPUT_DIR/$DATE"_2"/$SAMPLE_NAME --threads 8
     done < $READS_FILE
 

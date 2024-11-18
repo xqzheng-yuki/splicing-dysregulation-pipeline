@@ -10,7 +10,7 @@
 # v1.0 Initial release
 # v2.0 Make change to accept sorted input
 # Note: Ensure that the directory is the same or redirect by your need
-
+set -o pipefail
 ## the actual name of the script directory
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 source "${SCRIPT_DIR}/atlas-config.sh"

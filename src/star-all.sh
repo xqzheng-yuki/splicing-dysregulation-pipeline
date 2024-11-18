@@ -16,7 +16,7 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 source "${SCRIPT_DIR}/atlas-config.sh"
 
 # check if output directory exist
-mkdir -p $UNMAPPED_BAM_DIR/group
+mkdir -p $UNMAPPED_BAM_DIR/group/$DATE
 READS_TAG_FILE="/mnt/gtklab01/xiaoqing/sample_name_tag.txt"
 readarray -t samples < $READS_TAG_FILE 
 
@@ -27,17 +27,17 @@ TWOFILES=${TWOFILES::-1}
 RGLINE=$(printf "ID:%s , " ${samples[@]})
 RGLINE=${RGLINE::-3}
 
-cd $UNMAPPED_SEQ_DIR
+cd $UNMAPPED_SEQ_DIR/$DATE
 
 STAR --runMode alignReads \
     --genomeDir $GENOME_DIR \
     --readFilesIn $ONEFILES $TWOFILES \
     --outSAMattrRGline $RGLINE \
-    --outFileNamePrefix $UNMAPPED_BAM_DIR/group/unmapped \
+    --outFileNamePrefix $UNMAPPED_BAM_DIR/group/$DATE/unmapped \
     --outSAMtype BAM SortedByCoordinate \
     --readFilesCommand cat --runThreadN 8 --outSAMattributes MD NH XS --outSAMunmapped Within --twopassMode Basic
 
-cd $UNMAPPED_BAM_DIR/group
+cd $UNMAPPED_BAM_DIR/group/$DATE
 # Split the BAM file into separate files based on read groups or other tags, 
 # naming the output files dynamically using the format string.
 samtools split -f '%*_%!.%.' unmappedAligned.sortedByCoord.out.bam

@@ -5,7 +5,7 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 source "${SCRIPT_DIR}/atlas-config.sh"
 
-cd $UNMAPPED_BAM_DIR/group
+cd $UNMAPPED_BAM_DIR/group/$DATE
 
 for file in unmappedAligned.sortedByCoord.out_CTX*; do
     part_of_filename=$(echo "$file" | grep -o 'CTX_[^\.]*')

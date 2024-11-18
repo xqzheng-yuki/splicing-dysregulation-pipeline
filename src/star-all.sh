@@ -38,4 +38,6 @@ STAR --runMode alignReads \
     --readFilesCommand cat --runThreadN 8 --outSAMattributes MD NH XS --outSAMunmapped Within --twopassMode Basic
 
 cd $UNMAPPED_BAM_DIR/group
+# Split the BAM file into separate files based on read groups or other tags, 
+# naming the output files dynamically using the format string.
 samtools split -f '%*_%!.%.' unmappedAligned.sortedByCoord.out.bam

@@ -17,9 +17,9 @@ DB <- ensembldb::ensDbFromGtf("/mnt/gtklab01/linglab/mmusculus_annotation_files/
                               organism = "Mus_musculus",
                               genomeVersion ="GRCm39",
                               version=106)
-ens106 <- EnsDb(DB)
-seqlevelsStyle(ens106) <- "UCSC"
-GRCm39 <- ens106
+GRCm39 <- EnsDb(DB)
+# seqlevelsStyle(ens106) <- "UCSC"
+# GRCm39 <- ens106
 geneRanges_GRCm39 <- genes(GRCm39)
 
 ### Cytobands ###
@@ -79,22 +79,28 @@ get_gene_id <- function(geneName) {
   message(paste0("The gene id is ",gene_id_match,"."))
   return(gene_id_match)
 }
-# get_gene_id <- function(geneName) {
-#   matches <- agrep(geneName, 
-#                    elementMetadata(geneRanges_GRCm39)$gene_name, 
-#                    ignore.case = TRUE,
-#                    max.distance = 0,
-#                    value = TRUE)
-#   if (length(matches) != 1) {
-
-#   }
-#   gene_id_match <- geneRanges_GRCm39[matches]$gene_id
-#   message(paste0("The gene id is ",gene_id_match,"."))
-# }
-# get_gene_id("UNC13A")
-# get_gene_id("UNC13A")
-# get_gene_id("Ppp6c")
-# get_gene_id("UNC13")
+get_gene_id <- function(geneName) {
+  matches <- agrep(geneName, 
+                   elementMetadata(geneRanges_GRCm39)$gene_name, 
+                   ignore.case = TRUE,
+                   max.distance = 0)
+  if (length(matches) == 0) {
+    message("There is no matched found.")
+    message("Please double check the gene name or provide a gene id starting with ENSMUSG.")
+    return(invisible())
+  } else if (length(matches) != 1) {
+    message("There are more than one gene matched with your provided pattern.")
+    gene_name_match <- paste(geneRanges_GRCm39[matches]$gene_name,collapse = ", ")
+    message(paste0(gene_name_match," have been found."))
+    return(invisible())
+  }
+  gene_id_match <- geneRanges_GRCm39[matches]$gene_id
+  message(paste0("The gene id is ",gene_id_match))
+  return(invisible(gene_id_match))
+}
+get_gene_id("UNC13A")
+get_gene_id("UNC13")
+get_gene_id("Ppp6cd")
 # parameter #
 data_dir <- "/mnt/gtklab01/xiaoqing/star/results/group/Nov_18"
 

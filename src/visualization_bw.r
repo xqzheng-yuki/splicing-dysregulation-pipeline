@@ -79,9 +79,22 @@ get_gene_id <- function(geneName) {
   message(paste0("The gene id is ",gene_id_match,"."))
   return(gene_id_match)
 }
-get_gene_id("Ppp6c")
-get_gene_id("UNC13A")
-get_gene_id("UNC13")
+# get_gene_id <- function(geneName) {
+#   matches <- agrep(geneName, 
+#                    elementMetadata(geneRanges_GRCm39)$gene_name, 
+#                    ignore.case = TRUE,
+#                    max.distance = 0,
+#                    value = TRUE)
+#   if (length(matches) != 1) {
+
+#   }
+#   gene_id_match <- geneRanges_GRCm39[matches]$gene_id
+#   message(paste0("The gene id is ",gene_id_match,"."))
+# }
+# get_gene_id("UNC13A")
+# get_gene_id("UNC13A")
+# get_gene_id("Ppp6c")
+# get_gene_id("UNC13")
 # parameter #
 data_dir <- "/mnt/gtklab01/xiaoqing/star/results/group/Nov_18"
 

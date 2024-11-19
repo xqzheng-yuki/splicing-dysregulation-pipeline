@@ -98,9 +98,6 @@ get_gene_id <- function(geneName) {
   message(paste0("The gene id is ",gene_id_match))
   return(invisible(gene_id_match))
 }
-get_gene_id("UNC13A")
-get_gene_id("UNC13")
-get_gene_id("Ppp6cd")
 # parameter #
 data_dir <- "/mnt/gtklab01/xiaoqing/star/results/group/Nov_18"
 

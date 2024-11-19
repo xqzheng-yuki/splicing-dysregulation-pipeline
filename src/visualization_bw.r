@@ -63,8 +63,25 @@ add_track <- function(new_track,tracks=list()) {
   return(tracks)
 }
 get_gene_id <- function(geneName) {
-  geneRanges_GRCm39[which(elementMetadata(geneRanges_GRCm39)$gene_name==geneName)]$gene_id
+  gene_id_match <- geneRanges_GRCm39[which(elementMetadata(geneRanges_GRCm39)$gene_name==geneName)]$gene_id
+  if (length(gene_id_match) == 0) {
+    message(paste0("No matches found for gene name ",geneName,"."))
+    message("Testing for approximate results...")
+    approx_name <- str_to_title(geneName)
+    gene_id_match <- geneRanges_GRCm39[which(elementMetadata(geneRanges_GRCm39)$gene_name==approx_name)]$gene_id
+    if (length(gene_id_match) != 0) {
+      message(paste0("Found approximate match with gene name ",approx_name))
+    } else {
+      message("Not found approximately matched gene name. Please double check the gene name or provide a gene id starting with ENSMUSG.")
+      return(invisible())
+    }
+  }
+  message(paste0("The gene id is ",gene_id_match,"."))
+  return(gene_id_match)
 }
+get_gene_id("Ppp6c")
+get_gene_id("UNC13A")
+get_gene_id("UNC13")
 # parameter #
 data_dir <- "/mnt/gtklab01/xiaoqing/star/results/group/Nov_18"
 
@@ -74,7 +91,7 @@ condition_tag <- c("u","m1","m2","d")
 
 control_shades <- generate_shades("#282A62")
 treatment_shades <- generate_shades("#912C2C")
-# get bigwig file information#
+# get bigwig file information #
 bw_fileinfo <- expand_grid(tibble(treatment=rep(c("control","treatment"),each=4),
        group=c(control_group,treatment_group)),
        tag=condition_tag) |>
@@ -85,7 +102,6 @@ plot_gene <- function(goi) {
   if (!startsWith(goi,"ENSMUSG")) {
   message("Not inputing gene id, trying to change into gene id")
   goi <- get_gene_id(goi)
-  message(paste0("The gene id is ",goi))
   }
 
   gr <- geneRanges_GRCm39[goi]

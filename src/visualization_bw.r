@@ -48,7 +48,7 @@ merge_treatment_bw <- function(selection_range,treatment_n,bwinfo=bw_fileinfo) {
     })
   return(bw_range)
 }
-generate_shades <- function(base_color,condition_tag) {
+generate_shades <- function(base_color) {
   # Convert hex to RGB
   base_rgb <- col2rgb(base_color) / 255
   shades <- colorRampPalette(c("white", rgb(base_rgb[1], base_rgb[2], base_rgb[3])))(5)
@@ -62,23 +62,23 @@ add_track <- function(new_track,tracks=list()) {
   }
   return(tracks)
 }
-get_gene_id <- function(geneName) {
-  gene_id_match <- geneRanges_GRCm39[which(elementMetadata(geneRanges_GRCm39)$gene_name==geneName)]$gene_id
-  if (length(gene_id_match) == 0) {
-    message(paste0("No matches found for gene name ",geneName,"."))
-    message("Testing for approximate results...")
-    approx_name <- str_to_title(geneName)
-    gene_id_match <- geneRanges_GRCm39[which(elementMetadata(geneRanges_GRCm39)$gene_name==approx_name)]$gene_id
-    if (length(gene_id_match) != 0) {
-      message(paste0("Found approximate match with gene name ",approx_name))
-    } else {
-      message("Not found approximately matched gene name. Please double check the gene name or provide a gene id starting with ENSMUSG.")
-      return(invisible())
-    }
-  }
-  message(paste0("The gene id is ",gene_id_match,"."))
-  return(gene_id_match)
-}
+# get_gene_id <- function(geneName) {
+#   gene_id_match <- geneRanges_GRCm39[which(elementMetadata(geneRanges_GRCm39)$gene_name==geneName)]$gene_id
+#   if (length(gene_id_match) == 0) {
+#     message(paste0("No matches found for gene name ",geneName,"."))
+#     message("Testing for approximate results...")
+#     approx_name <- str_to_title(geneName)
+#     gene_id_match <- geneRanges_GRCm39[which(elementMetadata(geneRanges_GRCm39)$gene_name==approx_name)]$gene_id
+#     if (length(gene_id_match) != 0) {
+#       message(paste0("Found approximate match with gene name ",approx_name))
+#     } else {
+#       message("Not found approximately matched gene name. Please double check the gene name or provide a gene id starting with ENSMUSG.")
+#       return(invisible())
+#     }
+#   }
+#   message(paste0("The gene id is ",gene_id_match,"."))
+#   return(gene_id_match)
+# }
 get_gene_id <- function(geneName) {
   matches <- agrep(geneName, 
                    elementMetadata(geneRanges_GRCm39)$gene_name, 
@@ -98,6 +98,13 @@ get_gene_id <- function(geneName) {
   message(paste0("The gene id is ",gene_id_match))
   return(invisible(gene_id_match))
 }
+get_ylim <- function(first_set,second_set,condition_tag = NULL) {
+  ylim <- c(0,max(score(unlist(GRangesList(c(first_set,second_set))))))
+  if (!is.null(condition_tag)) {
+    ylim <- c(0,max(score(unlist(GRangesList(c(first_set[[condition_tag]],second_set[[condition_tag]]))))))
+  }
+  return(ylim)
+}
 # parameter #
 data_dir <- "/mnt/gtklab01/xiaoqing/star/results/group/Nov_18"
 
@@ -112,7 +119,10 @@ bw_fileinfo <- expand_grid(tibble(treatment=rep(c("control","treatment"),each=4)
        group=c(control_group,treatment_group)),
        tag=condition_tag) |>
   mutate(bw_path=glue::glue("{data_dir}/unmapped_CTX_{group}_{tag}.bw"))
-# plotting function #
+
+###########################
+#### plotting function ####
+###########################
 plot_gene <- function(goi) {
   
   if (!startsWith(goi,"ENSMUSG")) {
@@ -145,18 +155,18 @@ plot_gene <- function(goi) {
   show_track <- add_track(grTrack,show_track)
   
   ## track:: for bw
-  control_bw_data <-merge_treatment_bw(selection_range = gr,
+  control_bw_data <- merge_treatment_bw(selection_range = gr,
                                      treatment_n = "control")
-  ko_bw_data <-merge_treatment_bw(selection_range = gr,
+  ko_bw_data <- merge_treatment_bw(selection_range = gr,
                                      treatment_n = "treatment")
-
+  ylim <- get_ylim(first_set=control_bw_data,second_set=ko_bw_data)
   control_datatrack <- map(names(control_bw_data),
     function(n) {
       color <- control_shades[match(n,names(control_bw_data))]
       DataTrack(control_bw_data[[n]],
                 name = glue::glue("control_{n}"),
                 type="polygon",
-                # ylim=c(0,600),
+                ylim=ylim,
                 fill.mountain=c("white",color),
                 col="black")
     })
@@ -168,7 +178,7 @@ plot_gene <- function(goi) {
       DataTrack(ko_bw_data[[n]],
                 name = glue::glue("treatment_{n}"),
                 type="polygon",
-                # ylim=c(0,600),
+                ylim=ylim,
                 fill.mountain=c("white",color),
                 col="black")
     })
@@ -177,9 +187,81 @@ plot_gene <- function(goi) {
   ## track:: genomic coordinates
   show_track <- add_track(GenomeAxisTrack(),show_track)
   pdf(file = paste0("~/Capstone/results/", gr$symbol, ".pdf"))
-  plotTracks(show_track, cex.sampleNames = 0.6, main = gr$symbol)
+  plotTracks(show_track, cex.sampleNames = 0.5, main = gr$symbol, fontface.main = 1.5)
   dev.off()
 }
+###########################
+#### plotting function ####
+###########################
+overlapplot_gene <- function(goi) {
+  
+  if (!startsWith(goi,"ENSMUSG")) {
+  message("Not inputing gene id, trying to change into gene id")
+  goi <- get_gene_id(goi)
+  }
 
-plot_gene("ENSMUSG00000026753.6")
-plot_gene("Ube2d1")
+  gr <- geneRanges_GRCm39[goi]
+  
+  ## let's make it 10% wider
+  embiggen_factor <- round(width(gr)*0.1)
+  start(gr) <- start(gr) - embiggen_factor
+  end(gr) <- end(gr) + embiggen_factor
+
+  ## track:: current trxns
+  grTrack <- GeneRegionTrack(ensembldb::filter(GRCm39, ~ gene_id == goi),
+                             name=gr$symbol,
+                             start=start(gr),
+                             end=end(gr),
+                             cex.group=0.4,
+                             showId=TRUE)
+  show_track <- add_track(grTrack)
+  
+  ## track:: for bw
+  control_bw_data <- merge_treatment_bw(selection_range = gr,
+                                     treatment_n = "control")
+  ko_bw_data <- merge_treatment_bw(selection_range = gr,
+                                     treatment_n = "treatment")
+  ylim_list <- lapply(names(control_bw_data), function(condition_tag) {
+    get_ylim(control_bw_data, ko_bw_data, condition_tag)
+  })
+  control_datatrack <- map(names(control_bw_data),
+    function(n) {
+      color <- control_shades[match(n,names(control_bw_data))]
+      ylim <- ylim_list[match(n,names(control_bw_data))]
+      DataTrack(control_bw_data[[n]],
+                name = glue::glue("control_{n}"),
+                type="polygon",
+                fill.mountain=c("white",color),
+                col="black")
+    })
+
+  ko_datatrack <- map(names(ko_bw_data),
+    function(n) {
+      color <- treatment_shades[match(n,names(ko_bw_data))]
+      ylim <- ylim_list[match(n,names(ko_bw_data))]
+      DataTrack(ko_bw_data[[n]],
+                name = glue::glue("treatment_{n}"),
+                type="polygon",
+                fill.mountain=c("white",color),
+                col="black")
+    })
+
+  stack_datatrack <- map(names(control_bw_data),
+    function(n) {
+      index <- match(n,names(control_bw_data))
+      ylim <- ylim_list[index]
+      OverlayTrack(trackList = list(control_datatrack[[index]],
+                                    ko_datatrack[[index]]),
+                  name = glue::glue("stack_{n}"),
+                  ylim = ylim
+      )
+    })
+  show_track <- add_track(stack_datatrack,show_track)
+  
+  ## track:: genomic coordinates
+  show_track <- add_track(GenomeAxisTrack(),show_track)
+
+  pdf(file = paste0("~/Capstone/results/", gr$symbol, "_overlap.pdf"))
+  plotTracks(show_track, cex.sampleNames = 0.5, main = gr$symbol, fontface.main = 1.5)
+  dev.off()
+}

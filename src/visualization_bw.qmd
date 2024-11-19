@@ -103,7 +103,7 @@ get_gene_id <- function(geneName) {
 #| message: false
 
 # directory set
-data_dir <- "/mnt/gtklab01/xiaoqing/star/results/group"
+data_dir <- "/mnt/gtklab01/xiaoqing/star/results/group/Nov_18"
  
 # grouping tag
 treatment_group <- c(104,108,128,154)
@@ -217,7 +217,9 @@ plot_gene <- function(goi) {
   
   ## track:: genomic coordinates
   show_track <- add_track(GenomeAxisTrack(),show_track)
+  pdf()
   plotTracks(show_track, cex.sampleNames = 0.6, main = gr$symbol)
+  dev.off()
 }
 ```
 

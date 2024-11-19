@@ -144,7 +144,7 @@ plot_gene <- function(goi) {
   
   ## track:: genomic coordinates
   show_track <- add_track(GenomeAxisTrack(),show_track)
-  pdf(file = "~/Capstone/results/gr$symbol.pdf")
+  pdf(file = paste0("~/Capstone/results/", gr$symbol, ".pdf"))
   plotTracks(show_track, cex.sampleNames = 0.6, main = gr$symbol)
   dev.off()
 }

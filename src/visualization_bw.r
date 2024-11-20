@@ -6,10 +6,12 @@
 # Note: This code file is extracted from visualization_bw.qmd, please refer back for detailed information and explaination.
 
 ### Set up ###
-requiredCRAN <- c('tidyverse')
+requiredCRAN <- c('tidyverse','log4r')
 requiredBiocPackages <- c('rtracklayer','GenomicFeatures','Gviz','ensembldb','Rsamtools','GenomicAlignments','BRGenomics','randomcoloR')
 purrr::walk(requiredCRAN, function(x) library(x,character.only = TRUE))
 purrr::walk(requiredBiocPackages, function(x) library(x,character.only = TRUE))
+logger <- logger(appenders=console_appender(logfmt_log_layout()))
+level(logger) <- "INFO"
 
 ### Parsing GTF ###
 DB <- ensembldb::ensDbFromGtf("/mnt/gtklab01/linglab/mmusculus_annotation_files/gencode.vM29.primary_assembly.annotation.gtf",
@@ -24,87 +26,19 @@ geneRanges_GRCm39 <- genes(GRCm39)
 
 ### Cytobands ###
 if (!file.exists("/mnt/gtklab01/xiaoqing/scaffold/cytoBandIdeo.txt.gz")) {
-  message("The 'cytoBandIdeo.txt.gz' does not exist. Performing some action...")
+  info(logger,"The 'cytoBandIdeo.txt.gz' does not exist. Performing some action...")
   download.file(url="https://hgdownload.soe.ucsc.edu/goldenPath/mm39/database/cytoBandIdeo.txt.gz",
               destfile="/mnt/gtklab01/xiaoqing/scaffold/cytoBandIdeo.txt.gz")
 } else {
-  message("The 'cytoBandIdeo.txt.gz' has been downloaded.")
+  info(logger,"The 'cytoBandIdeo.txt.gz' has been downloaded.")
 }
 cytobands <- read_tsv("/mnt/gtklab01/xiaoqing/scaffold/cytoBandIdeo.txt.gz",
-         col_names = c("chrom","chromStart","chromEnd","name","gieStain"))
+         col_names = c("chrom","chromStart","chromEnd","name","gieStain"),show_col_types = FALSE)
 
 ### Take in bigwig file ###
 # self-define process function #
-import_bigwig <- function(file,bw_selection) {
-  bw_data <- BRGenomics::makeGRangesBRG(import.bw(file,selection=rtracklayer::BigWigSelection(bw_selection)))
-  keepStandardChromosomes(bw_data,pruning.mode = "coarse")
-}
-merge_treatment_bw <- function(selection_range,treatment_n,bwinfo=bw_fileinfo) {
-  bwinfo <- dplyr::filter(bwinfo,treatment==treatment_n)
-  bw_data <- split(map(bwinfo$bw_path,import_bigwig,bw_selection=selection_range),
-        bwinfo$tag)
-  bw_range <- map(bw_data, ~ {
-                  mergeGRangesData(.x,exact_overlaps = TRUE)
-    })
-  return(bw_range)
-}
-generate_shades <- function(base_color) {
-  # Convert hex to RGB
-  base_rgb <- col2rgb(base_color) / 255
-  shades <- colorRampPalette(c("white", rgb(base_rgb[1], base_rgb[2], base_rgb[3])))(5)
-  return(shades[2:length(shades)])
-}
-add_track <- function(new_track,tracks=list()) {
-  if (is.list(new_track)) {
-    tracks <- append(tracks,new_track)
-  } else {
-  tracks <- append(tracks,list(new_track))
-  }
-  return(tracks)
-}
-# get_gene_id <- function(geneName) {
-#   gene_id_match <- geneRanges_GRCm39[which(elementMetadata(geneRanges_GRCm39)$gene_name==geneName)]$gene_id
-#   if (length(gene_id_match) == 0) {
-#     message(paste0("No matches found for gene name ",geneName,"."))
-#     message("Testing for approximate results...")
-#     approx_name <- str_to_title(geneName)
-#     gene_id_match <- geneRanges_GRCm39[which(elementMetadata(geneRanges_GRCm39)$gene_name==approx_name)]$gene_id
-#     if (length(gene_id_match) != 0) {
-#       message(paste0("Found approximate match with gene name ",approx_name))
-#     } else {
-#       message("Not found approximately matched gene name. Please double check the gene name or provide a gene id starting with ENSMUSG.")
-#       return(invisible())
-#     }
-#   }
-#   message(paste0("The gene id is ",gene_id_match,"."))
-#   return(gene_id_match)
-# }
-get_gene_id <- function(geneName) {
-  matches <- agrep(geneName, 
-                   elementMetadata(geneRanges_GRCm39)$gene_name, 
-                   ignore.case = TRUE,
-                   max.distance = 0)
-  if (length(matches) == 0) {
-    message("There is no matched found.")
-    message("Please double check the gene name or provide a gene id starting with ENSMUSG.")
-    return(invisible())
-  } else if (length(matches) != 1) {
-    message("There are more than one gene matched with your provided pattern.")
-    gene_name_match <- paste(geneRanges_GRCm39[matches]$gene_name,collapse = ", ")
-    message(paste0(gene_name_match," have been found."))
-    return(invisible())
-  }
-  gene_id_match <- geneRanges_GRCm39[matches]$gene_id
-  message(paste0("The gene id is ",gene_id_match))
-  return(invisible(gene_id_match))
-}
-get_ylim <- function(first_set,second_set,condition_tag = NULL) {
-  ylim <- c(0,max(score(unlist(GRangesList(c(first_set,second_set))))))
-  if (!is.null(condition_tag)) {
-    ylim <- c(0,max(score(unlist(GRangesList(c(first_set[[condition_tag]],second_set[[condition_tag]]))))))
-  }
-  return(ylim)
-}
+source("~/Capstone/src/dependent_bw.r")
+
 # parameter #
 data_dir <- "/mnt/gtklab01/xiaoqing/star/results/group/Nov_18"
 
@@ -114,19 +48,26 @@ condition_tag <- c("u","m1","m2","d")
 
 control_shades <- generate_shades("#282A62")
 treatment_shades <- generate_shades("#912C2C")
-# get bigwig file information #
+
+# get bigwig file path #
 bw_fileinfo <- expand_grid(tibble(treatment=rep(c("control","treatment"),each=4),
        group=c(control_group,treatment_group)),
        tag=condition_tag) |>
   mutate(bw_path=glue::glue("{data_dir}/unmapped_CTX_{group}_{tag}.bw"))
 
-###########################
-#### plotting function ####
-###########################
+#get bam file path #
+bam_fileinfo <- expand_grid(tibble(treatment=rep(c("control","treatment"),each=4),
+       group=c(control_group,treatment_group)),
+       tag=condition_tag) |>
+  mutate(bam_path=glue::glue("{data_dir}/unmappedAligned.sortedByCoord.out_CTX_{group}_{tag}.bam"))
+
+#########################################################
+################### plotting function ###################
+#########################################################
 plot_gene <- function(goi) {
   
   if (!startsWith(goi,"ENSMUSG")) {
-  message("Not inputing gene id, trying to change into gene id")
+  debug(logger,"Not inputing gene id, trying to change into gene id")
   goi <- get_gene_id(goi)
   }
 
@@ -137,7 +78,6 @@ plot_gene <- function(goi) {
   start(gr) <- start(gr) - embiggen_factor
   end(gr) <- end(gr) + embiggen_factor
  
-  
   ## first track:: cytobands
   idt <- IdeogramTrack(chromosome=as.character(chrom(gr)),
                      genome='mm39',
@@ -155,6 +95,7 @@ plot_gene <- function(goi) {
   show_track <- add_track(grTrack,show_track)
   
   ## track:: for bw
+  debug(logger,sprintf("length of gr is %d",length(gr)))
   control_bw_data <- merge_treatment_bw(selection_range = gr,
                                      treatment_n = "control")
   ko_bw_data <- merge_treatment_bw(selection_range = gr,
@@ -190,13 +131,12 @@ plot_gene <- function(goi) {
   plotTracks(show_track, cex.sampleNames = 0.5, main = gr$symbol, fontface.main = 1.5)
   dev.off()
 }
-###########################
-#### plotting function ####
-###########################
-overlapplot_gene <- function(goi) {
-  
+
+
+plot_supplymental <- function(goi) {
+
   if (!startsWith(goi,"ENSMUSG")) {
-  message("Not inputing gene id, trying to change into gene id")
+  debug(logger,"Not inputing gene id, trying to change into gene id")
   goi <- get_gene_id(goi)
   }
 
@@ -246,22 +186,33 @@ overlapplot_gene <- function(goi) {
                 col="black")
     })
 
+  
   stack_datatrack <- map(names(control_bw_data),
     function(n) {
       index <- match(n,names(control_bw_data))
       ylim <- ylim_list[index]
+      title <- paste0("stack_",n)
+      debug(logger,title)
       OverlayTrack(trackList = list(control_datatrack[[index]],
                                     ko_datatrack[[index]]),
-                  name = glue::glue("stack_{n}"),
+                  name = title,
                   ylim = ylim
       )
     })
   show_track <- add_track(stack_datatrack,show_track)
   
+  alignment_track <- pmap(bam_fileinfo, function(treatment,group,tag,bam_path) {
+    AlignmentsTrack(bam_path, start = start(gr), end= end(gr),chromosome=as.character(chrom(gr)),
+    type=c("coverage", "sashimi"),name=paste0("CTX_",group,"_",tag))
+  })
+  m2row <- which(bam_fileinfo$tag=="m2")
+
   ## track:: genomic coordinates
   show_track <- add_track(GenomeAxisTrack(),show_track)
 
-  pdf(file = paste0("~/Capstone/results/", gr$symbol, "_overlap.pdf"))
+  options(ucscChromosomeNames=FALSE)
+  pdf(file = paste0("~/Capstone/results/", gr$symbol, "_supplymental.pdf"))
   plotTracks(show_track, cex.sampleNames = 0.5, main = gr$symbol, fontface.main = 1.5)
+  plotTracks(alignment_track[m2row], main = "m2",from = start(gr), to = end(gr))
   dev.off()
 }

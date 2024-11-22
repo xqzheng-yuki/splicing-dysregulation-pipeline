@@ -1,0 +1,144 @@
+import os
+import re
+
+configfile: "config.yaml"
+log: "logs/generatedecoy.log"
+
+rule all:
+    input:
+        config["Paths"]["outfolder"] + "gentrom.fa",
+        config["Paths"]["outfolder"] + "decoy.txt"
+
+rule make_outfolder:
+    output:
+        directory(config["Paths"]["outfolder"])
+    shell:
+        "mkdir -p {output}"
+
+rule extract_trxn:
+    input:
+        fasta: config["Paths"]["genomefile"],
+        gtf: config["Paths"]["gtffile"]
+    output:
+        f"{config['output_dir']}/transcripts.fa"
+    shell:
+        """
+        {config["Package"]["gffread"]} -g {input.fasta} {input.gtf} -w {output}
+        """
+
+rule extract_exon:
+    input:
+        config["Paths"]["gtffile"]
+    output:
+        exon_out: temp(f"{config['output_dir']}/exon_out.bed")
+        exon_merge: f"{config['output_dir']}/exon_merge.bed"
+    shell:
+        """
+        {config["Package"]["gffread"]} {input} -T -o- | {config["Package"]["awk"]} '$3 == "exon" {gsub(/[[:punct:]]/,"",$14); print $1 "\t" $4 "\t" $5 "\t" $14 "\t" "0" "\t" $7}' > {output.exon_out}
+        {config["Package"]["bedtools"]} sort -i {output.exon_out} | {config["Package"]["bedtools"]} merge > {output.exon_merge}
+        """
+
+rule extract_intron:
+    input:
+        exon: "exon_merge.bed"
+        gtf: config["Paths"]["gtffile"]
+    output:
+        genes: "genes.bed",
+        intronic: temp(f"{config['output_dir']}/intronic.bed"),
+        intronic_merge: f"{config['output_dir']}/intronic_merge.bed",
+        intronic_seq: f"{config['output_dir']}/intronic_found.fa"
+    shell:
+        """
+        {config["Package"]["awk"]} -v OFS='\t' '{if ($3=="gene") {print $1,$4,$5}}' {input.gtf} | {config["Package"]["bedtools"]} sort > {output.genes}
+        {config["Package"]["bedtools"]} subtract -a {output.genes} -b {input.exon} -nonamecheck > {output.intronic}
+        {config["Package"]["bedtools"]} sort -i {output.intronic} | {config["Package"]["bedtools"]} merge > {output.intronic_merge}
+        {config["Package"]["bedtools"]} getfasta -fi {config["Paths"]["genomefile"]} -bed {output.intronic_merge} -fo {output.intronic_seq}
+        """
+
+rule mask_genome:
+    input:
+        fasta: config["Paths"]["genomefile"],
+        exon: "exon_merge.bed"
+    output:
+        "reference.masked.genome.fa"
+    shell:
+        """
+        {config["Package"]["bedtools"]} maskfasta -fi {input.fasta} -bed {input.exon} -fo {output}
+        """
+
+rule align_transcriptome:
+    input:
+        txp: os.path.join(config["Paths"]["outfolder"] + "transcripts.fa"),
+        mask_gene: "reference.masked.genome.fa"
+    output:
+        f"{config['output_dir']}/mashmap.out"
+    shell:
+        """
+        {config["Package"]["mashmap"]} -r {input.mask_gene} -q {input.txp} -t {config["Params"]["threads"]} --pi 80 -s 500 > {output}
+        """
+
+rule extract_intervals:
+    input:
+
+    output:
+    shell:
+        """
+        {config["Package"]["awk"]} -v OFS='\t' '{print $6,$8,$9}' mashmap.out | sort -k1,1 -k2,2n - > genome_found.sorted.bed
+        """
+
+rule merge_intervals:
+    input:
+    output:
+    shell:
+        """
+        {config["Package"]["bedtools"]} merge -i genome_found.sorted.bed > genome_found_merged.bed
+        """
+
+rule extract_sequences:
+    input:
+    output:
+    shell:
+        """
+        {config["Package"]["bedtools"]} getfasta -fi reference.masked.genome.fa -bed genome_found_merged.bed -fo genome_found.fa
+        """
+
+rule concat_decoy:
+    input:
+    output:
+    shell:
+        """
+        {config["Package"]["awk"]} '{a=$0; getline;split(a, b, ":");  r[b[1]] = r[b[1]]""$0} END { for (k in r) { print k"\n"r[k] } }' genome_found.fa > decoy.fa
+        """
+
+rule concat_intron:
+    input:
+    output:
+    shell:
+        """
+        {config["Package"]["awk"]} '{a=$0; getline;split(a, b, ":");  r[b[1]] = r[b[1]]""$0} END { for (k in r) { print k"_intronic\n"r[k] } }' intronic_found.fa > intron_chr.fa
+        """
+
+rule make_gentrome:
+    input:
+    output:
+    shell:
+        """
+        cat $txpfile decoy.fa intron_chr.fa > gentrome.fa
+        """
+
+rule extract_decoy_ids:
+    input:
+    output:
+    shell:
+        """
+        grep -h ">" decoy.fa intron_chr.fa | {config["Package"]["awk"]} '{print substr($1,2); }' > decoysNintronic.txt
+        """
+
+rule clean_temp:
+    input:
+    output:
+    shell:
+        """
+        rm exon_out.bed intronic.bed reference.masked.genome.fa reference.masked.genome.fa.fai genome_found.sorted.bed
+        rm mashmap.out genome_found_merged.bed genome_found.fa decoy.fa intron_chr.fa
+        """

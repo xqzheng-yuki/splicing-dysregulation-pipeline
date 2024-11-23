@@ -2,13 +2,14 @@
 Paths:
   gtffile: "/mnt/gtklab01/linglab/mmusculus_annotation_files/gencode.vM29.primary_assembly.annotation.gtf"
   genomefile: "/mnt/gtklab01/linglab/mmusculus_annotation_files/GRCm39.primary_assembly.genome.fa"
-  outfolder: "/mnt/gtklab01/xiaoqing/salmon/index/decoy2"
 
-Package:
-  awk: "awk"
-  bedtools: "bedtools"
-  mashmap: "mashmap"
-  gffread: "gffread"
+output_dir: "/mnt/gtklab01/xiaoqing/salmon/index/decoy3"
+
+
+awk: "awk"
+bedtools: "bedtools"
+mashmap: "mashmap"
+gffread: "gffread"
 
 Params:
   threads: 8

@@ -35,8 +35,8 @@ rule extract_exon:
         exon_merge=f"{config['output_dir']}/exon_merge.bed"
     shell:
         """
-        {config[gffread]} {input} -T -o- | {config[awk]} '$3 == "exon" {{gsub(/[[:punct:]]/,"",$10); print $1 "\t" $4 "\t" $5 "\t" $10 "\t" $6 "\t" $7}}' > {output.exon_out}
-        {config[bedtools]} sort -i {output.exon_out} | {config[bedtools]} merge > {output.exon_merge}
+        {config[gffread]} {input} -T -o- | {config[awk]} '$3 == "exon" {{gsub(/"|;/, "", $12); print $1 "\t" $4 "\t" $5 "\t" $12 "\t" $6 "\t" $7}}' > {output.exon_out}
+        {config[bedtools]} sort -i {output.exon_out} | {config[bedtools]} merge -c 4,5,6 -o collapse,collapse,collapse > {output.exon_merge}
         """
 
 rule extract_intron:
@@ -50,9 +50,9 @@ rule extract_intron:
         intronic_seq=f"{config['output_dir']}/intronic_found.fa"
     shell:
         """
-        {config[awk]} -v OFS='\t' '{{if ($3=="gene") {{gsub(/[[:punct:]]/,"",$10); print $1,$4,$5,$10,$6,$7}}}}' {input.gtf} | {config[bedtools]} sort > {output.genes}
+        {config[awk]} -v OFS='\t' '{{if ($3=="gene") {{gsub(/"|;/, "", $10); print $1,$4,$5,$10,$6,$7}}}}' {input.gtf} | {config[bedtools]} sort > {output.genes}
         {config[bedtools]} subtract -a {output.genes} -b {input.exon} -nonamecheck > {output.intronic}
-        {config[bedtools]} sort -i {output.intronic} | {config[bedtools]} merge > {output.intronic_merge}
+        {config[bedtools]} sort -i {output.intronic} | {config[bedtools]} merge -c 4,5,6 -o collapse,collapse,collapse > {output.intronic_merge}
         {config[bedtools]} getfasta -name -fi {config[Paths][genomefile]} -bed {output.intronic_merge} -fo {output.intronic_seq}
         """
 
@@ -86,8 +86,8 @@ rule extract_intervals:
         merged=f"{config['output_dir']}/genome_found_merged.bed"
     shell:
         """
-        {config[awk]} -v OFS='\t' '{{print $6,$8,$9}}' {input} | sort -k1,1 -k2,2n - > {output.sorted}
-        {config[bedtools]} merge -i {output.sorted} > {output.merged}
+        {config[awk]} -v OFS='\t' '{{print $6,$8,$9,$1,".",$5}}' {input} | sort -k1,1 -k2,2n - > {output.sorted}
+        {config[bedtools]} merge -i {output.sorted} -c 4,5,6 -o collapse,first,collapse > {output.merged}
         """
 
 rule extract_sequences:

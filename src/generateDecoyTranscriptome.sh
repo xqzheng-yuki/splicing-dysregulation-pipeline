@@ -124,7 +124,7 @@ fi
 # extracting all the exonic and intronic features to mask
 echo "[1/10] Extracting exonic and purely intronic features from the gtf"
 echo "[1/2] Extracting exonic featrues"
-$gffread $gtffile -T -o- | awk '$3 == "exon" {gsub(/[[:punct:]]/,"",$14); print $1 "\t" $4 "\t" $5 "\t" $14 "\t" "0" "\t" $7}' > exon_out.bed
+$gffread $gtffile -T -o- | awk '$3 == "exon" {gsub(/[[:punct:]]/,"",$10); print $1 "\t" $4 "\t" $5 "\t" $10 "\t" $6 "\t" $7}' > exon_out.bed
 $bedtools sort -i exon_out.bed | $bedtools merge > exon_merge.bed
 echo "[2/2] Extracting intronic featrues"
 $awk -v OFS='\t' '{if ($3=="gene") {print $1,$4,$5}}' $gtffile | bedtools sort > genes.bed

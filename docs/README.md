@@ -55,8 +55,8 @@ Note:
 The `src/visualization_bw.qmd` file provides a Quarto document for visualizing mapping results using the GViz package in R. This step generates genome-level visualizations to better interpret the alignment and mapping data from the previous steps.
 - `src/visualization_bw.r`: Extracted core R script for generating plots. Use `source("src/visualization_bw.r")` to run directly.
   - Generates PDFs:
-    1. Standard plot `plot_gene("GENE_NAME")`: [GENE_NAME.pdf](results/Ppp6c.pdf)
-    2. Supplemental plot `plot_supplymental("GENE_NAME")`: [GENE_NAME_supplemental.pdf](results/Ppp6c_supplymental.pdf)
+    1. Standard plot `plot_gene("GENE_NAME")`: [GENE_NAME.pdf](~/results/Ppp6c.pdf)
+    2. Supplemental plot `plot_supplymental("GENE_NAME")`: [GENE_NAME_supplemental.pdf](~/results/Ppp6c_supplymental.pdf)
 
 Note:
 - Need a Quarto-compatible environment to open the file.

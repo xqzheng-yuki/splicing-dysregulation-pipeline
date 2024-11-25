@@ -31,11 +31,11 @@ rule extract_exon:
     input:
         config["Paths"]["gtffile"]
     output:
-        exon_out=temp(f"{config['output_dir']}/exon_out.bed"),
+        exon_out=f"{config['output_dir']}/exon_out.bed",
         exon_merge=f"{config['output_dir']}/exon_merge.bed"
     shell:
         """
-        {config[gffread]} {input} -T -o- | {config[awk]} '$3 == "exon" {{gsub(/[[:punct:]]/,"",$14); print $1 "\t" $4 "\t" $5 "\t" $14 "\t" "0" "\t" $7}}' > {output.exon_out}
+        {config[gffread]} {input} -T -o- | {config[awk]} '$3 == "exon" {{gsub(/[[:punct:]]/,"",$10); print $1 "\t" $4 "\t" $5 "\t" $10 "\t" $6 "\t" $7}}' > {output.exon_out}
         {config[bedtools]} sort -i {output.exon_out} | {config[bedtools]} merge > {output.exon_merge}
         """
 
@@ -45,15 +45,15 @@ rule extract_intron:
         gtf=config["Paths"]["gtffile"]
     output:
         genes=f"{config['output_dir']}/genes.bed",
-        intronic=temp(f"{config['output_dir']}/intronic.bed"),
+        intronic=f"{config['output_dir']}/intronic.bed",
         intronic_merge=f"{config['output_dir']}/intronic_merge.bed",
         intronic_seq=f"{config['output_dir']}/intronic_found.fa"
     shell:
         """
-        {config[awk]} -v OFS='\t' '{{if ($3=="gene") {{print $1,$4,$5}}}}' {input.gtf} | {config[bedtools]} sort > {output.genes}
+        {config[awk]} -v OFS='\t' '{{if ($3=="gene") {{gsub(/[[:punct:]]/,"",$10); print $1,$4,$5,$10,$6,$7}}}}' {input.gtf} | {config[bedtools]} sort > {output.genes}
         {config[bedtools]} subtract -a {output.genes} -b {input.exon} -nonamecheck > {output.intronic}
         {config[bedtools]} sort -i {output.intronic} | {config[bedtools]} merge > {output.intronic_merge}
-        {config[bedtools]} getfasta -fi {config[Paths][genomefile]} -bed {output.intronic_merge} -fo {output.intronic_seq}
+        {config[bedtools]} getfasta -name -fi {config[Paths][genomefile]} -bed {output.intronic_merge} -fo {output.intronic_seq}
         """
 
 rule mask_genome:
@@ -75,7 +75,7 @@ rule mashmap:
         f"{config['output_dir']}/mashmap.out"
     shell:
         """
-        {config[mashmap]} -r {input.mask_gene} -q {input.txp} -t {config[Params][threads]} --pi 80 -s 500 > {output}
+        {config[mashmap]} -r {input.mask_gene} -q {input.txp} -t {config[Params][threads]} --pi 80 -s 500 -o {output}
         """
 
 rule extract_intervals:

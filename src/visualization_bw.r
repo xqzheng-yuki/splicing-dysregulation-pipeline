@@ -61,6 +61,10 @@ bam_fileinfo <- expand_grid(tibble(treatment=rep(c("control","treatment"),each=4
        tag=condition_tag) |>
   mutate(bam_path=glue::glue("{data_dir}/unmappedAligned.sortedByCoord.out_CTX_{group}_{tag}.bam"))
 
+#get bed file path #
+intron_data <- import.bed("/mnt/gtklab01/xiaoqing/salmon/index/decoy3/intronic.bed")
+mashmap_data <- import.bed("/mnt/gtklab01/xiaoqing/salmon/index/decoy3/genome_found_sorted.bed")
+options(ucscChromosomeNames=FALSE)
 #########################################################
 ################### plotting function ###################
 #########################################################
@@ -94,6 +98,24 @@ plot_gene <- function(goi) {
                              showId=TRUE)
   show_track <- add_track(grTrack,show_track)
   
+  ## track:: for bed
+  intron_gr <- intron_data[queryHits(findOverlaps(intron_data, gr))]
+  intron_track <- AnnotationTrack(intron_gr,
+                  chromosome=as.character(chrom(gr)),
+                  genome='mm39',
+                  name = "IN",
+                  stacking = "dense",
+                  start=start(gr),end=end(gr))
+  show_track <- add_track(intron_track,show_track)
+  mashmap_gr <- mashmap_data[queryHits(findOverlaps(mashmap_data, gr))]
+  mashmap_track <- AnnotationTrack(mashmap_gr,
+                  chromosome=as.character(chrom(gr)),
+                  genome='mm39',
+                  name = "MM",
+                  stacking = "dense",
+                  start=start(gr),end=end(gr))
+  show_track <- add_track(mashmap_track,show_track)
+  debug(logger,sprintf("length of show track is %d",length(show_track)))
   ## track:: for bw
   debug(logger,sprintf("length of gr is %d",length(gr)))
   control_bw_data <- merge_treatment_bw(selection_range = gr,
@@ -121,7 +143,7 @@ plot_gene <- function(goi) {
                 type="polygon",
                 ylim=ylim,
                 fill.mountain=c("white",color),
-                col="black")
+                col="black",stackHeight=1)
     })
   show_track <- add_track(ko_datatrack,show_track)
   

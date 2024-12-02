@@ -54,6 +54,10 @@ add_track <- function(new_track,tracks=list()) {
 }
 
 get_gene_id <- function(geneName) {
+  # this if made for shiny app
+  if (geneName == "Gene name") {
+    gene_id_match <- ""
+  } else {
   matches <- which(tolower(elementMetadata(geneRanges_GRCm39)$gene_name) == tolower(geneName))
   appr_matches <- agrep(geneName, 
                    elementMetadata(geneRanges_GRCm39)$gene_name, 
@@ -69,8 +73,14 @@ get_gene_id <- function(geneName) {
     return(invisible())
   }}
   gene_id_match <- geneRanges_GRCm39[matches]$gene_id
-  info(logger,paste0("The gene id is ",gene_id_match))
+  info(logger,paste0("The gene id is ",gene_id_match))}
   return(gene_id_match)
+}
+
+is_gene_name <- function(gene_input) {
+  # Assuming gene names are non-numeric and IDs are numeric
+  # Adjust the logic based on your gene naming convention
+  return(!grepl("^ENSMUSG\\d+\\.\\d+", gene_input))
 }
 
 get_ylim <- function(first_set,second_set,condition_tag = NULL) {

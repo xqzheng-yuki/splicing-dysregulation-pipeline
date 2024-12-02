@@ -233,8 +233,8 @@ plot_supplymental <- function(goi) {
   show_track <- add_track(GenomeAxisTrack(),show_track)
 
   options(ucscChromosomeNames=FALSE)
-  pdf(file = paste0("~/Capstone/results/", gr$symbol, "_supplymental.pdf"))
+  # pdf(file = paste0("~/Capstone/results/", gr$symbol, "_supplymental.pdf"))
   plotTracks(show_track, cex.sampleNames = 0.5, main = gr$symbol, fontface.main = 1.5)
   plotTracks(alignment_track[m2row], main = "m2",from = start(gr), to = end(gr))
-  dev.off()
+  # dev.off()
 }

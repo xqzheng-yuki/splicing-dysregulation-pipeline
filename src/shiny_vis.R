@@ -1,80 +1,146 @@
 library(shiny)
-library(Gviz)
 
-# Source the provided R scripts (assuming they define functions such as plot_gene and plot_supplymental)
-source("~/Capstone/src/visualization_bw.r")
+# Source function R script
 source("~/Capstone/src/dependent_bw.r")
+source("~/Capstone/src/plot_shiny.r")
 
-# Define UI for the Shiny app
 ui <- fluidPage(
+  tags$head(
+    tags$style(
+      HTML(".shiny-notification {
+             position:fixed;
+             top: calc(30%);
+             left: calc(40%);
+             font-size: 2em;
+             }
+             "
+      )
+    )
+  ),
+  waiter::use_waiter(),
   titlePanel("Gene Visualization"),
   sidebarLayout(
     sidebarPanel(
-      textInput("gene", "Gene to Visualize:", value = "Enter gene name here", placeholder = "Enter gene name here"),
-      actionButton("plotButton", "Generate Plot"),
-      downloadButton("downloadPlot", "Download Plot as PDF")
+      textInput("gene", "Enter Gene Name or ID:", value = ""),
+      actionButton("get_gene", "Confirm", class="btn-info btn-block"),
+      br(),
+      selectInput("dataset", "Select Addional Dataset:", 
+                  choices = c("","decoy set" = "d_set", "m1 match set" = "m1_set", "m2 match set" = "m2_set"),
+                  selected = NULL),
+      br(),
+      actionButton("plot","Generate Plot", icon("binoculars"), class = "btn-primary btn-block"),
+      br(),
+      fluidRow(
+        column(6,downloadButton("download_pdf", "PDF", class = "btn-info btn-block")),
+        column(6,downloadButton("download_svg", "SVG", class = "btn-block"))
+      )
     ),
     mainPanel(
-      plotOutput("genePlot"),
-      plotOutput("supplementPlot")
+      tabsetPanel(
+        tabPanel("Classic Plot",
+                 titlePanel(h3(textOutput("title1"),align="center")),
+                 plotOutput("classicPlot")),
+        tabPanel("Selected Dataset Plot",
+                 titlePanel(h3(textOutput("title2"),align="center")),
+                 plotOutput("datasetPlot"))
+      )
     )
   )
 )
 
-# Define server logic for the Shiny app
+# Define Server
 server <- function(input, output, session) {
-  # Reactive expression to generate the plots when the button is clicked
-  plot_data <- eventReactive(input$plotButton, {
-    req(input$gene)
-    
-    # Create temporary files for saving the plots
-    gene_plot_file <- tempfile(fileext = ".pdf")
-    supplement_plot_file <- tempfile(fileext = ".pdf")
-    
-    # Call your custom plotting functions from the sourced scripts
-    # Save the plots to temporary files instead of directly to disk
-    pdf(gene_plot_file)
-    plot_gene(input$gene)
-    dev.off()
-    
-    pdf(supplement_plot_file)
-    plot_supplymental(input$gene)
-    dev.off()
-    
-    list(gene_plot_file = gene_plot_file, supplement_plot_file = supplement_plot_file)
+  
+  # Reactive values to store plots
+  plot_storage <- reactiveValues(classic = NULL, dataset = NULL)
+  
+  # Determine if input is a gene name or gene ID
+  gene_id <- eventReactive(input$get_gene, {
+    req(input$gene)  # Ensure input$gene is available
+    # Check if the gene input is already an ID or needs to be converted from a name
+    if (is_gene_name(input$gene)) {
+      get_gene_id(input$gene)  # If input is a gene name, use get_gene_id() to convert
+    } else {
+      input$gene  # If input is already a gene ID, return it as-is
+    }
   })
   
-  # Render the gene plot in the UI
-  output$genePlot <- renderPlot({
-    req(plot_data())
-    pdf_file <- plot_data()$gene_plot_file
-    plot_content <- pdf_text(pdf_file)
-    plot(plot_content)
+  # For get title for plot
+  output$title1 <- output$title2 <- renderText({
+    req(gene_id)
+    gene_id()
   })
   
-  # Render the supplement plot in the UI
-  output$supplementPlot <- renderPlot({
-    req(plot_data())
-    pdf_file <- plot_data()$supplement_plot_file
-    plot_content <- pdf_text(pdf_file)
-    plot(plot_content)
+  # Generate the tracklist based on the gene ID
+  current <- eventReactive(input$plot, {
+    req(gene_id())
+    id <- showNotification("Getting track data...", duration = NULL, closeButton = FALSE,type="warning")
+    on.exit(removeNotification(id), add = TRUE)
+    waiter::Waiter$new(id = "classicPlot")$show()
+    tracklist(gene_id())
   })
   
-  # Allow users to download the plots as a PDF
-  output$downloadPlot <- downloadHandler(
+  observeEvent(input$plot, {
+    req(current()) # ensure tracklist data is available
+    
+    plot_storage$classic <- function(){
+      plotplot(current()[c(1:12,41)],gene_id())
+    }
+    
+    if (input$dataset != "") {
+      plot_storage$dataset <- function(){
+        subset_data <- switch(input$dataset,
+                              "d_set" = current()[c(17:24, 41)],
+                              "m1_set" = current()[c(25:32, 41)],
+                              "m2_set" = current()[c(33:40, 41)],
+                              NULL)
+        plotplot(subset_data,gene_id())
+      }
+    } else {
+      plot_storage$dataset <- NULL
+    }
+  })
+  
+  output$classicPlot <- renderPlot({
+    req(plot_storage$classic)
+    plot_storage$classic()
+  })
+  
+  output$datasetPlot <- renderPlot({
+    req(plot_storage$dataset)
+    plot_storage$dataset()
+  })
+  
+  output$download_pdf <- downloadHandler(
     filename = function() {
-      paste("gene_plot_", input$gene, ".pdf", sep = "")
+      paste("plots-", gene_id(), Sys.Date(), ".pdf", sep = "")
     },
     content = function(file) {
       pdf(file)
-      gene_pdf <- plot_data()$gene_plot_file
-      supplement_pdf <- plot_data()$supplement_plot_file
-      plot(gene_pdf)
-      plot(supplement_pdf)
+      if (!is.null(plot_storage$classic)) {
+        plot_storage$classic()
+      }
+      if (!is.null(plot_storage$dataset)) {
+        plot_storage$dataset()
+      }
+      dev.off()
+    }
+  )
+  output$download_svg <- downloadHandler(
+    filename = function() {
+      paste("plots-", gene_id(), Sys.Date(), ".svg", sep = "")
+    },
+    content = function(file) {
+      svg(file)
+      if (!is.null(plot_storage$classic)) {
+        plot_storage$classic()
+      }
+      if (!is.null(plot_storage$dataset)) {
+        plot_storage$dataset()
+      }
       dev.off()
     }
   )
 }
-
 # Run the Shiny app
 shinyApp(ui = ui, server = server)

@@ -1,14 +1,30 @@
+# Snakefile for creating decoy file
+# 
+# Usage:
+#     snakemake --config decoy_number=3
+# Configuration:
+# - All parameters should be defined in `config.yaml`.
+# - Input files and directories must be specified in the config file.
+# 
+# Output:
+# - Results will be stored in the directory defined by `output_dir/decoy_number` in config.yaml.
+#
+# Notes:
+# - This workflow requires the following tools: bwa, samtools, awk.
+# - Adjust the paths in `config.yaml` according to your setup.
+
 import os
 import re
 
 configfile: "/mnt/cbis/home/e1124735/Capstone/snakemake-flow/config.yaml"
 awk = config["awk"]
 log: "logs/generatedecoy.log"
+output_dir = config['output_dir'].format(decoy_number=config['decoy_number'])
 
 rule all:
     input:
-        f"{config['output_dir']}/gentrom.fa",
-        f"{config['output_dir']}/decoy.txt"
+        f"{output_dir}/gentrom.fa",
+        f"{output_dir}/decoy.txt"
 
 rule make_outfolder:
     output:
@@ -21,7 +37,7 @@ rule extract_trxn:
         fasta=config["Paths"]["genomefile"],
         gtf=config["Paths"]["gtffile"]
     output:
-        f"{config['output_dir']}/transcripts.fa"
+        f"{output_dir}/transcripts.fa"
     shell:
         """
         {config[gffread]} -g {input.fasta} {input.gtf} -w {output}
@@ -31,26 +47,29 @@ rule extract_exon:
     input:
         config["Paths"]["gtffile"]
     output:
-        exon_out=f"{config['output_dir']}/exon_out.bed",
-        exon_merge=f"{config['output_dir']}/exon_merge.bed"
+        exon_out=f"{output_dir}/exon_out.bed",
+        exon_sort=f"{output_dir}/exon_sort.bed",
+        exon_merge=f"{output_dir}/exon_merge.bed"
     shell:
         """
         {config[gffread]} {input} -T -o- | {config[awk]} '$3 == "exon" {{gsub(/"|;/, "", $12); print $1 "\t" $4 "\t" $5 "\t" $12 "\t" $6 "\t" $7}}' > {output.exon_out}
-        {config[bedtools]} sort -i {output.exon_out} | {config[bedtools]} merge -c 4,5,6 -o collapse,collapse,collapse > {output.exon_merge}
+        {config[bedtools]} sort -i {output.exon_out} > {output.exon_sort}
+        {config[bedtools]} merge -i {output.exon_sort} -c 4,5,6 -o collapse,collapse,collapse > {output.exon_merge}
         """
 
 rule extract_intron:
     input:
-        exon=f"{config['output_dir']}/exon_merge.bed",
-        gtf=config["Paths"]["gtffile"]
+        exon=f"{output_dir}/exon_merge.bed",
+        gtf=config["Paths"]["gtffile"],
+        genome=config["Paths"]["chromsize"]
     output:
-        genes=f"{config['output_dir']}/genes.bed",
-        intronic=f"{config['output_dir']}/intronic.bed",
-        intronic_merge=f"{config['output_dir']}/intronic_merge.bed",
-        intronic_seq=f"{config['output_dir']}/intronic_found.fa"
+        genes=f"{output_dir}/genes.bed",
+        intronic=f"{output_dir}/intronic.bed",
+        intronic_merge=f"{output_dir}/intronic_merge.bed",
+        intronic_seq=f"{output_dir}/intronic_found.fa"
     shell:
         """
-        {config[awk]} -v OFS='\t' '{{if ($3=="gene") {{gsub(/"|;/, "", $10); print $1,$4,$5,$10,$6,$7}}}}' {input.gtf} | {config[bedtools]} sort > {output.genes}
+        {config[awk]} -v OFS='\t' '{{if ($3=="gene") {{gsub(/"|;/, "", $10); print $1,$4,$5,$10,$6,$7}}}}' {input.gtf} | {config[bedtools]} sort -g {input.genome}> {output.genes}
         {config[bedtools]} subtract -a {output.genes} -b {input.exon} -nonamecheck > {output.intronic}
         {config[bedtools]} sort -i {output.intronic} | {config[bedtools]} merge -c 4,5,6 -o collapse,collapse,collapse > {output.intronic_merge}
         {config[bedtools]} getfasta -name -fi {config[Paths][genomefile]} -bed {output.intronic_merge} -fo {output.intronic_seq}
@@ -59,9 +78,9 @@ rule extract_intron:
 rule mask_genome:
     input:
         fasta=config["Paths"]["genomefile"],
-        exon=f"{config['output_dir']}/exon_merge.bed"
+        exon=f"{output_dir}/exon_merge.bed"
     output:
-        f"{config['output_dir']}/reference.masked.genome.fa"
+        f"{output_dir}/reference.masked.genome.fa"
     shell:
         """
         {config[bedtools]} maskfasta -fi {input.fasta} -bed {input.exon} -fo {output}
@@ -69,10 +88,10 @@ rule mask_genome:
 
 rule mashmap:
     input:
-        txp=os.path.join(config["output_dir"] + "/transcripts.fa"),
-        mask_gene=f"{config['output_dir']}/reference.masked.genome.fa"
+        txp=os.path.join(output_dir, "transcripts.fa"),
+        mask_gene=f"{output_dir}/reference.masked.genome.fa"
     output:
-        f"{config['output_dir']}/mashmap.out"
+        f"{output_dir}/mashmap.out"
     shell:
         """
         {config[mashmap]} -r {input.mask_gene} -q {input.txp} -t {config[Params][threads]} --pi 80 -s 500 -o {output}
@@ -80,10 +99,10 @@ rule mashmap:
 
 rule extract_intervals:
     input:
-        f"{config['output_dir']}/mashmap.out"
+        f"{output_dir}/mashmap.out"
     output:
-        sorted=f"{config['output_dir']}/genome_found_sorted.bed",
-        merged=f"{config['output_dir']}/genome_found_merged.bed"
+        sorted=f"{output_dir}/genome_found_sorted.bed",
+        merged=f"{output_dir}/genome_found_merged.bed"
     shell:
         """
         {config[awk]} -v OFS='\t' '{{print $6,$8,$9,$1,".",$5}}' {input} | sort -k1,1 -k2,2n - > {output.sorted}
@@ -92,10 +111,10 @@ rule extract_intervals:
 
 rule extract_sequences:
     input:
-        fasta=f"{config['output_dir']}/reference.masked.genome.fa",
-        bed=f"{config['output_dir']}/genome_found_merged.bed"
+        fasta=f"{output_dir}/reference.masked.genome.fa",
+        bed=f"{output_dir}/genome_found_merged.bed"
     output:
-        f"{config['output_dir']}/genome_found.fa"
+        f"{output_dir}/genome_found.fa"
     shell:
         """
         {config[bedtools]} getfasta -fi {input.fasta} -bed {input.bed} -fo {output}
@@ -103,11 +122,11 @@ rule extract_sequences:
 
 rule concat_decoy:
     input:
-        decoy=f"{config['output_dir']}/genome_found.fa",
-        intron=f"{config['output_dir']}/intronic_found.fa"
+        decoy=f"{output_dir}/genome_found.fa",
+        intron=f"{output_dir}/intronic_found.fa"
     output:
-        decoy=f"{config['output_dir']}/decoy.fa",
-        intron=f"{config['output_dir']}/intron_chr.fa"
+        decoy=f"{output_dir}/decoy.fa",
+        intron=f"{output_dir}/intron_chr.fa"
     shell:
         """
         {config[awk]} '{{a=$0; getline;split(a, b, ":");  r[b[1]] = r[b[1]]""$0}} END {{ for (k in r) {{ print k"\\n"r[k] }} }}' {input.decoy} > {output.decoy}
@@ -116,11 +135,11 @@ rule concat_decoy:
 
 rule make_gentrome:
     input:
-        decoy=f"{config['output_dir']}/decoy.fa",
-        intron=f"{config['output_dir']}/intron_chr.fa",
-        trxn=f"{config['output_dir']}/transcripts.fa"
+        decoy=f"{output_dir}/decoy.fa",
+        intron=f"{output_dir}/intron_chr.fa",
+        trxn=f"{output_dir}/transcripts.fa"
     output:
-        f"{config['output_dir']}/gentrom.fa"
+        f"{output_dir}/gentrom.fa"
     shell:
         """
         cat {input.trxn} {input.decoy} {input.intron} > {output}
@@ -128,10 +147,10 @@ rule make_gentrome:
 
 rule extract_decoy_ids:
     input:
-        decoy=f"{config['output_dir']}/decoy.fa",
-        intron=f"{config['output_dir']}/intron_chr.fa"
+        decoy=f"{output_dir}/decoy.fa",
+        intron=f"{output_dir}/intron_chr.fa"
     output:
-        f"{config['output_dir']}/decoy.txt"
+        f"{output_dir}/decoy.txt"
     shell:
         """
         grep -h ">" {input.decoy} {input.intron} | {config[awk]} '{{print substr($1,2); }}' > {output}
@@ -145,3 +164,20 @@ rule clean_temp:
         rm exon_out.bed intronic.bed reference.masked.genome.fa reference.masked.genome.fa.fai genome_found.sorted.bed
         rm mashmap.out genome_found_merged.bed genome_found.fa decoy.fa intron_chr.fa
         """
+
+rule chromsize:
+    input: config["Paths"]["chromsize"]
+    output: f"{output_dir}/chromsize.bed"
+    shell:
+        """
+        {config[awk]} 'OFS="\t" {{print $1, "0", $2}}' {input} | sort -k1,1 -k2,2n > {output}
+        """
+
+rule intergenic:
+    input:
+        genome=config["Paths"]["chromsize"],
+        gene=f"{output_dir}/genes.bed"
+    output:
+        f"{output_dir}/intergen.bed"
+    shell:
+        "{config[bedtools]} complement -i {input.gene} -g {input.genome} > {output}"

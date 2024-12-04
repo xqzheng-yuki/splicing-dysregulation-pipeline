@@ -27,11 +27,13 @@ treatment_shades <- generate_shades("#912C2C")
 
 ### Part2: Getting data ###
 # Parsing GTF
-DB <- ensembldb::ensDbFromGtf("/mnt/gtklab01/linglab/mmusculus_annotation_files/gencode.vM29.primary_assembly.annotation.gtf",
-                              outfile="/mnt/gtklab01/xiaoqing/scaffold/GRCm39_Ens106.sqlite",
-                              organism = "Mus_musculus",
-                              genomeVersion ="GRCm39",
-                              version=106)
+# DB <- ensembldb::ensDbFromGtf("/mnt/gtklab01/linglab/mmusculus_annotation_files/gencode.vM29.primary_assembly.annotation.gtf",
+#                               outfile="/mnt/gtklab01/xiaoqing/scaffold/GRCm39_Ens106.sqlite",
+#                               organism = "Mus_musculus",
+#                               genomeVersion ="GRCm39",
+#                               version=106)
+# save(DB,file="~/Capstone/test_data/db.rda")
+load("~/Capstone/test_data/db.rda")
 GRCm39 <- EnsDb(DB)
 geneRanges_GRCm39 <- genes(GRCm39)
 # Cytobands
@@ -57,14 +59,12 @@ bam_fileinfo <- expand_grid(tibble(treatment=rep(c("control","treatment"),each=4
 #get bed file path
 intron_data <- import.bed("/mnt/gtklab01/xiaoqing/salmon/index/decoy3/intronic.bed")
 mashmap_data <- import.bed("/mnt/gtklab01/xiaoqing/salmon/index/decoy3/genome_found_sorted.bed")
+exon_data <- import.bed("/mnt/gtklab01/xiaoqing/salmon/index/decoy3/exon_out.bed")
 options(ucscChromosomeNames=FALSE)
 
 ### Part3: Getting Track Information ###
 tracklist <- function(goi){
-    gr <- geneRanges_GRCm39[goi]
-    embiggen_factor <- round(width(gr)*0.1)
-    start(gr) <- start(gr) - embiggen_factor
-    end(gr) <- end(gr) + embiggen_factor
+    gr <- enlarge_gr(goi)
 
     ## track:: cytobands
     idt <- IdeogramTrack(chromosome=as.character(chrom(gr)),
@@ -87,13 +87,25 @@ tracklist <- function(goi){
     info(logger,glue("Length of show track now is {length(show_track)}"))
   
     ## track:: for bed
+    exon_gr <- exon_data[queryHits(findOverlaps(exon_data, gr))]
+    exon_track <- AnnotationTrack(exon_gr,
+                                  chromosome=as.character(chrom(gr)),
+                                  genome='mm39',
+                                  name = "MM",
+                                  stacking = "dense",
+                                  start=start(gr),end=end(gr),
+                                  fill='blue')
+    show_track <- add_track(exon_track,show_track)
+    info(logger,glue("Added {length(exon_track)} track(s) exon region"))
+    info(logger,glue("Length of show track now is {length(show_track)}"))
     intron_gr <- intron_data[queryHits(findOverlaps(intron_data, gr))]
     intron_track <- AnnotationTrack(intron_gr,
                   chromosome=as.character(chrom(gr)),
                   genome='mm39',
                   name = "IN",
                   stacking = "dense",
-                  start=start(gr),end=end(gr))
+                  start=start(gr),end=end(gr),
+                  fill='grey')
     show_track <- add_track(intron_track,show_track)
     info(logger,glue("Added {length(intron_track)} track(s) pure intronic region"))
     info(logger,glue("Length of show track now is {length(show_track)}"))
@@ -103,9 +115,10 @@ tracklist <- function(goi){
                   genome='mm39',
                   name = "MM",
                   stacking = "dense",
-                  start=start(gr),end=end(gr))
+                  start=start(gr),end=end(gr),
+                  fill='#FFA07A')
     show_track <- add_track(mashmap_track,show_track)
-    info(logger,glue("Added {length(intron_track)} track(s) pure intronic region"))
+    info(logger,glue("Added {length(intron_track)} track(s) mashmap alignment region"))
     info(logger,glue("Length of show track now is {length(show_track)}"))
 
     ## track:: for bw
@@ -191,6 +204,6 @@ tracklist <- function(goi){
 }
 
 plotplot <- function(tracklist,goi) {
-    gr <- geneRanges_GRCm39[goi]
+    gr <- enlarge_gr(goi)
     plotTracks(tracklist, cex.sampleNames = 0.5, from = start(gr), to = end(gr))
 }

@@ -4,9 +4,9 @@ library(shiny)
 source("~/Capstone/src/dependent_bw.r")
 source("~/Capstone/src/plot_shiny.r")
 
-ui <- fluidPage(
-  tags$head(
-    tags$style(
+ui <- fillPage(
+  shiny::tags$head(
+    shiny::tags$style(
       HTML(".shiny-notification {
              position:fixed;
              top: calc(30%);
@@ -18,9 +18,14 @@ ui <- fluidPage(
     )
   ),
   waiter::use_waiter(),
-  titlePanel("Gene Visualization"),
-  sidebarLayout(
-    sidebarPanel(
+  titlePanel(h2("Gene Visualization",align="center")),
+  # sidebarLayout(
+  #   sidebarPanel(
+  fillRow(
+    flex = c(2,8),
+    column(
+      width = 12,
+      style = "background-color:lightgrey;padding: 20px;margin-left: 10px;",
       textInput("gene", "Enter Gene Name or ID:", value = ""),
       actionButton("get_gene", "Confirm", class="btn-info btn-block"),
       br(),
@@ -35,7 +40,9 @@ ui <- fluidPage(
         column(6,downloadButton("download_svg", "SVG", class = "btn-block"))
       )
     ),
-    mainPanel(
+    # mainPanel(
+    column(
+      width = 12,
       tabsetPanel(
         tabPanel("Classic Plot",
                  titlePanel(h3(textOutput("title1"),align="center")),
@@ -84,15 +91,15 @@ server <- function(input, output, session) {
     req(current()) # ensure tracklist data is available
     
     plot_storage$classic <- function(){
-      plotplot(current()[c(1:12,41)],gene_id())
+      plotplot(current()[c(1:13,42)],gene_id())
     }
     
     if (input$dataset != "") {
       plot_storage$dataset <- function(){
         subset_data <- switch(input$dataset,
-                              "d_set" = current()[c(17:24, 41)],
-                              "m1_set" = current()[c(25:32, 41)],
-                              "m2_set" = current()[c(33:40, 41)],
+                              "d_set" = current()[c(18:25, 42)],
+                              "m1_set" = current()[c(26:33, 42)],
+                              "m2_set" = current()[c(34:41, 42)],
                               NULL)
         plotplot(subset_data,gene_id())
       }
@@ -104,12 +111,12 @@ server <- function(input, output, session) {
   output$classicPlot <- renderPlot({
     req(plot_storage$classic)
     plot_storage$classic()
-  })
+  },res = 80)
   
   output$datasetPlot <- renderPlot({
     req(plot_storage$dataset)
     plot_storage$dataset()
-  })
+  },res = 100)
   
   output$download_pdf <- downloadHandler(
     filename = function() {

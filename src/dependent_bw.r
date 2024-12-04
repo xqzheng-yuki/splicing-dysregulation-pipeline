@@ -90,3 +90,11 @@ get_ylim <- function(first_set,second_set,condition_tag = NULL) {
   }
   return(ylim)
 }
+
+enlarge_gr <- function(goi) {
+  gr <- geneRanges_GRCm39[goi]
+  embiggen_factor <- round(width(gr)*0.1)
+  start(gr) <- start(gr) - embiggen_factor
+  end(gr) <- end(gr) + embiggen_factor
+  return(gr)
+}

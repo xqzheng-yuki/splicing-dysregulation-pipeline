@@ -12,7 +12,10 @@ requiredCRAN <- c('tidyverse','log4r')
 requiredBiocPackages <- c('rtracklayer','GenomicFeatures','Gviz','ensembldb','Rsamtools','GenomicAlignments','BRGenomics','randomcoloR','glue')
 purrr::walk(requiredCRAN, function(x) library(x,character.only = TRUE))
 purrr::walk(requiredBiocPackages, function(x) library(x,character.only = TRUE))
-logger <- logger(appenders=console_appender(logfmt_log_layout()))
+my_layout <- function(level, ...) {
+  paste0(format(Sys.time()), " [", level, "] ", ..., collapse = "")
+}
+logger <- logger(appenders=console_appender(my_layout))
 level(logger) <- "INFO"
 
 ### Part1: Set Directory and corlor###

@@ -47,7 +47,7 @@ rule extract_exon:
     input:
         config["Paths"]["gtffile"]
     output:
-        exon_out=f"{output_dir}/exon_out.bed",
+        exon_out=temp(f"{output_dir}/exon_out.bed"),
         exon_sort=f"{output_dir}/exon_sort.bed",
         exon_merge=f"{output_dir}/exon_merge.bed"
     shell:
@@ -57,7 +57,7 @@ rule extract_exon:
         {config[bedtools]} merge -i {output.exon_sort} -c 4,5,6 -o collapse,collapse,collapse > {output.exon_merge}
         """
 
-rule extract_intron:
+rule extract_intron_genes:
     input:
         exon=f"{output_dir}/exon_merge.bed",
         gtf=config["Paths"]["gtffile"],
@@ -80,7 +80,7 @@ rule mask_genome:
         fasta=config["Paths"]["genomefile"],
         exon=f"{output_dir}/exon_merge.bed"
     output:
-        f"{output_dir}/reference.masked.genome.fa"
+        temp(f"{output_dir}/reference.masked.genome.fa")
     shell:
         """
         {config[bedtools]} maskfasta -fi {input.fasta} -bed {input.exon} -fo {output}
@@ -103,28 +103,10 @@ rule intergenic_decoy_intervals:
         intergen=f"{output_dir}/intergen.bed",
         genome=config["Paths"]["chromsize"]
     output:
-        mashmap_bed=f"{output_dir}/mashmap_out.bed",
-        sorted=f"{output_dir}/genome_found_sorted.bed",
-        merged=f"{output_dir}/genome_found_merged.bed",
-        filtered=f"{output_dir}/mashmap_intergenic.bed"
-    shell:
-        """
-        {config[awk]} -v OFS='\t' '{{print $6,$8,$9,$1,".",$5}}' {input.mashmap} > {output.mashmap_bed}
-        {config[bedtools]} sort -i {output.mashmap_bed} -g {input.genome} > {output.sorted}
-        {config[bedtools]} intersect -a {output.sorted} -b {input.intergen} > {output.filtered}
-        {config[bedtools]} merge -i {output.filtered} > {output.merged}
-        """
-
-rule intergenic_decoy_test:
-    input:
-        mashmap=f"{output_dir}/mashmap.out",
-        intergen=f"{output_dir}/intergen.bed",
-        genome=config["Paths"]["chromsize"]
-    output:
-        mashmap_bed=f"{output_dir}/mashmap_out.bed",
-        sorted=f"{output_dir}/genome_found_sorted.bed",
-        filtered=f"{output_dir}/mashmap_intergenic.bed",
-        filtered_n_sorted=f"{output_dir}/mashmap_intergenic_sorted.bed",
+        mashmap_bed=temp(f"{output_dir}/mashmap_out_ori.bed"),
+        sorted=f"{output_dir}/mashmap_out.bed",
+        filtered=temp(f"{output_dir}/mashmap_intergenic_ori.bed"),
+        filtered_n_sorted=f"{output_dir}/mashmap_intergenic.bed",
         merged=f"{output_dir}/mashmap_intergenic_merged.bed"
     shell:
         """
@@ -182,14 +164,6 @@ rule extract_decoy_ids:
         grep -h ">" {input.decoy} {input.intron} | {config[awk]} '{{print substr($1,2); }}' > {output}
         """
 
-rule clean_temp:
-    input:
-    output:
-    shell:
-        """
-        rm exon_out.bed intronic.bed reference.masked.genome.fa reference.masked.genome.fa.fai genome_found.sorted.bed
-        rm mashmap.out genome_found_merged.bed genome_found.fa decoy.fa intron_chr.fa
-        """
 
 rule intergenic:
     input:

@@ -1,0 +1,150 @@
+# Snakefile for creating bam and bw file
+# 
+# Usage:
+#     snakemake --config decoy_number=4 run_number=3 date="Dec_02"
+# Configuration:
+# - All parameters should be defined in `config.yaml`.
+# - Input files and directories must be specified in the config file.
+# 
+# Output:
+# - Results will be stored in the directory defined by `output_dir/decoy_number` in config.yaml.
+#
+# Notes:
+# - This workflow requires the following tools: salmon, samtools, star, seqtk, bamCoverage.
+# - Adjust the paths in `config.yaml` according to your setup.
+
+import os
+import re
+from datetime import datetime
+
+configfile: "/mnt/cbis/home/e1124735/Capstone/src/snakemake-dataprocess/config.yaml"
+decoy_dir = config['decoy_dir'].format(decoy_number=config['decoy_number'])
+DATE = config.get("date", datetime.now().strftime("%b_%d"))
+output_dir = config['output_DIR'].format(run_number=config['run_number'])
+output_dir = f"{output_dir}_{DATE}"
+
+rule all:
+    input:
+        expand(f"{output_dir}/star/result/unmapped_{{sample}}_{{tag}}.bw", sample=config["samples"], tag=config["tags"])
+
+rule indexing:
+    input:
+        gentrome=f"{decoy_dir}/gentrom.fa",
+        decoy=f"{decoy_dir}/decoy.txt"
+    output:
+        directory(f"{decoy_dir}/salmon_index")
+    shell:
+        """
+        bash {config[src_dir]}/salmon-index.sh {input.gentrome} {input.decoy} {output}
+        """
+
+rule salmon:
+    input:
+        index_dir=f"{decoy_dir}/salmon_index",
+        reads_1=lambda wildcards: f"{config['RNA_READS_DIR']}/{wildcards.sample}_1.fq.gz",
+        reads_2=lambda wildcards: f"{config['RNA_READS_DIR']}/{wildcards.sample}_2.fq.gz"
+    output:
+        quant_file=f"{output_dir}/salmon/{{sample}}/quant.sf",
+        aux_ifo=f"{output_dir}/salmon/{{sample}}/aux_info/unmapped_names.txt"
+    params:
+        salmom_dir=f"{output_dir}/salmon"
+    shell:
+        """
+        mkdir -p {params.salmom_dir}
+        bash {config[src_dir]}/salmon.sh {input.index_dir} {wildcards.sample} {input.reads_1} {input.reads_2} {params.salmom_dir}
+        """
+
+rule unmap_id_separate:
+    input:
+        f"{output_dir}/salmon/{{sample}}/aux_info/unmapped_names.txt"
+    output:
+        f"{output_dir}/salmon/{{sample}}/aux_info/unmapped_{{tag}}.lst"
+    params:
+        unmapped_type="{tag}"
+    shell:
+        """
+        echo "Working on {params.unmapped_type}."
+        grep "{params.unmapped_type}$" {input} | cut -f1 -d" " > {output}
+        """
+
+rule unmapped_sequence:
+    input:
+        name=f"{output_dir}/salmon/{{sample}}/aux_info/unmapped_{{tag}}.lst",
+        reads_1=lambda wildcards: f"{config['RNA_READS_DIR']}/{wildcards.sample}_1.fq.gz",
+        reads_2=lambda wildcards: f"{config['RNA_READS_DIR']}/{wildcards.sample}_2.fq.gz"
+    output:
+        unmapped_1="{unmapped_seq_dir}/{sample}_{tag}_unmapped_seq_1.fq",
+        unmapped_2="{unmapped_seq_dir}/{sample}_{tag}_unmapped_seq_2.fq"
+    params:
+        unmapped_seq_dir=f"{output_dir}/star/seq"
+    shell:
+        """
+        mkdir -p {params.unmapped_seq_dir}
+        echo "Processing {wildcards.sample}, type {wildcards.tag}."
+        seqtk subque {input.reads_1}{input.name} > {output.unmapped_1}
+        seqtk subque {input.reads_2}{input.name} > {output.unmapped_2}
+        """
+
+rule STAR_align_reads:
+    input:
+        reads_tag_file="/mnt/gtklab01/xiaoqing/sample/sample_name_tag.txt",
+        unmapped_seq_1=expand(f"{output_dir}/star/seq/{{sample}}_{{type}}_unmapped_seq_1.fq", sample=config["samples"], type=["d", "m1", "m2", "u"]),
+        unmapped_seq_2=expand(f"{output_dir}/star/seq/{{sample}}_{{type}}_unmapped_seq_2.fq", sample=config["samples"], type=["d", "m1", "m2", "u"]),
+        genome_dir=config['Files']['stargenome']
+    output:
+        bam=f"{output_dir}/star/result/unmappedAligned.sortedByCoord.out.bam"
+    params:
+        unmapped_bam_dir=f"{output_dir}/star/result",
+        threads=8
+    run:
+        # Read sample names
+        with open(input.reads_tag_file) as f:
+            samples = [line.strip() for line in f]
+
+        # Build STAR input files
+        onefiles = ",".join(input.unmapped_seq_1)
+        twofiles = ",".join(input.unmapped_seq_2)
+        rgline = " , ".join(f"ID:{sample}" for sample in samples)
+
+        # Run STAR
+        shell(f"""
+            mkdir -p {params.unmapped_bam_dir}
+            STAR --runMode alignReads \
+                 --genomeDir {input.genome_dir} \
+                 --readFilesIn {onefiles} {twofiles} \
+                 --outSAMattrRGline "{rgline}" \
+                 --outFileNamePrefix {params.unmapped_bam_dir}/unmapped \
+                 --outSAMtype BAM SortedByCoordinate \
+                 --readFilesCommand cat \
+                 --runThreadN {params.threads} \
+                 --outSAMattributes MD NH XS \
+                 --outSAMunmapped Within \
+                 --twopassMode Basic
+        """)
+
+
+rule split_bam:
+    input:
+        f"{output_dir}/star/result/unmappedAligned.sortedByCoord.out.bam"
+    output:
+        f"{output_dir}/star/result/unmappedAligned.sortedByCoord.out_{{sample}}_{{tag}}.bam"
+    params:
+        unmapped_bam_dir=f"{output_dir}/star/result"
+    shell:
+        """
+        cd {params.unmapped_bam_dir}
+        samtools split -f '%*_%!.%.' {input}
+        """
+
+rule bamtobw:
+    input:
+        bam=f"{output_dir}/star/result/unmappedAligned.sortedByCoord.out_{{sample}}_{{tag}}.bam"
+    output:
+        bam_index=f"{output_dir}/star/result/unmappedAligned.sortedByCoord.out_{{sample}}_{{tag}}.bam.bai",
+        bigwig=f"{output_dir}/star/result/unmapped_{{sample}}_{{tag}}.bw"
+    shell:
+        """
+        echo "Processing {wildcards.sample}, type {wildcards.tag}."
+        samtools index {input.bam} {output.bam_index}
+        bamCoverage -b {input.bam} -o {output.bigwig}
+        """

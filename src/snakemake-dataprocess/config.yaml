@@ -1,0 +1,35 @@
+Files:
+  gtffile: "/mnt/gtklab01/linglab/mmusculus_annotation_files/gencode.vM29.primary_assembly.annotation.gtf"
+  genomefile: "/mnt/gtklab01/linglab/mmusculus_annotation_files/GRCm39.primary_assembly.genome.fa"
+  chromsize: "/mnt/gtklab01/linglab/mmusculus_annotation_files/GRCm39.chrNameLength.txt"
+  stargenome: "/mnt/gtklab01/linglab/mmusculus_annotation_files/STAR_v2.7.9a_index_mmusculus_gencode.vM29"
+
+src_dir: "~/Capstone/src"
+decoy_dir: "/mnt/gtklab01/xiaoqing/decoy/decoy{decoy_number}"
+decoy_number: 4
+run_number: 3
+output_DIR: "/mnt/gtklab01/xiaoqing/Run{run_number}"
+RNA_READS_DIR: "/mnt/gtklab01/linglab/tdp43/fastq"
+
+samples:
+  - CTX_120
+  - CTX_125
+  - CTX_147
+  - CTX_148
+  - CTX_104
+  - CTX_108
+  - CTX_128
+  - CTX_154
+tags:
+  - d
+  - m1
+  - m2
+  - u
+
+awk: "awk"
+bedtools: "bedtools"
+mashmap: "mashmap"
+gffread: "gffread"
+
+Params:
+  threads: 8

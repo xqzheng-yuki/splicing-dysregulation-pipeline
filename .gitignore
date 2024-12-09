@@ -40,12 +40,10 @@ vignettes/*.pdf
 .Renviron
 
 # pkgdown site
-docs/*
 src/general_script.sh
 .Ds_Store
 snakemake-flow/.snakemake
-!docs/README.md
-!docs/Directory_setting.md
+path.sh
 
 # translation temp files
 po/*~

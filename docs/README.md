@@ -5,7 +5,7 @@
 Utilize the special function from Salmon for less computation complex alternative splicing events detection. (?)
 
 ## Workflow
-[scheme_workflow.pdf](./sheme.png)
+![](./sheme.png)
 **Optional: Set up**
 
 The workflow has dependences: seqtk, etc. (wait for append)

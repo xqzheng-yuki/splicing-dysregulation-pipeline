@@ -3,7 +3,7 @@
 ## top level
 BASE_DIR="/mnt/gtklab01"
 XQ_DIR="${BASE_DIR}/xiaoqing"
-READS_FILE="${XQ_DIR}/sample_name.txt"
+READS_FILE="${XQ_DIR}/sample/sample_name.txt"
 G_DIR="${BASE_DIR}/linglab/mmusculus_annotation_files"
 DATE=$(date +%b_%d)
 ## This sets up the common configuration for files on atlas.
@@ -16,7 +16,6 @@ RNA_READS_DIR="${BASE_DIR}/linglab/tdp43/fastq"
 SALMON_OUTPUT_DIR="${XQ_DIR}/salmon/full_output"
 
 ## filter fastq
-UNMAPPED_UNISEQ_DIR="${XQ_DIR}/star/data"
 UNMAPPED_SEQ_DIR="${XQ_DIR}/star/group_data"
 
 ## star-all

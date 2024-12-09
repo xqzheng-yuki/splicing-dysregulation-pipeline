@@ -19,7 +19,7 @@ logger <- logger(appenders=console_appender(my_layout))
 level(logger) <- "INFO"
 
 ### Part1: Set Directory and corlor###
-data_dir <- "/mnt/gtklab01/xiaoqing/star/results/group/Nov_18"
+data_dir <- "/mnt/gtklab01/xiaoqing/Run2_Nov_18/star/result"
 info(logger,glue("You have set your data directory as {data_dir}"))
 treatment_group <- c(104,108,128,154)
 control_group <- c(120,125,147,148)
@@ -60,9 +60,9 @@ bam_fileinfo <- expand_grid(tibble(treatment=rep(c("control","treatment"),each=4
        tag=condition_tag) |>
   mutate(bam_path=glue::glue("{data_dir}/unmappedAligned.sortedByCoord.out_CTX_{group}_{tag}.bam"))
 #get bed file path
-intron_data <- import.bed("/mnt/gtklab01/xiaoqing/salmon/index/decoy3/intronic.bed")
-mashmap_data <- import.bed("/mnt/gtklab01/xiaoqing/salmon/index/decoy3/genome_found_sorted.bed")
-exon_data <- import.bed("/mnt/gtklab01/xiaoqing/salmon/index/decoy3/exon_out.bed")
+intron_data <- import.bed("/mnt/gtklab01/xiaoqing/decoy/decoy3/intronic.bed")
+mashmap_data <- import.bed("/mnt/gtklab01/xiaoqing/decoy/decoy3/genome_found_sorted.bed")
+exon_data <- import.bed("/mnt/gtklab01/xiaoqing/decoy/decoy3/exon_out.bed")
 options(ucscChromosomeNames=FALSE)
 
 ### Part3: Getting Track Information ###

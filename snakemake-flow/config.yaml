@@ -4,7 +4,7 @@ Paths:
   genomefile: "/mnt/gtklab01/linglab/mmusculus_annotation_files/GRCm39.primary_assembly.genome.fa"
   chromsize: "/mnt/gtklab01/linglab/mmusculus_annotation_files/GRCm39.chrNameLength.txt"
 
-output_dir: "/mnt/gtklab01/xiaoqing/salmon/index/decoy{decoy_number}"
+output_dir: "/mnt/gtklab01/xiaoqing/decoy/decoy{decoy_number}"
 decoy_number: 4
 
 awk: "awk"

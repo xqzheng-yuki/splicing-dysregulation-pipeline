@@ -42,7 +42,7 @@ vignettes/*.pdf
 # pkgdown site
 src/general_script.sh
 .Ds_Store
-snakemake-flow/.snakemake
+**/.snakemake/
 path.sh
 
 # translation temp files

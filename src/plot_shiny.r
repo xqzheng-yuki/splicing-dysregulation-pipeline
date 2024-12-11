@@ -13,14 +13,14 @@ requiredBiocPackages <- c('rtracklayer','GenomicFeatures','Gviz','ensembldb','Rs
 purrr::walk(requiredCRAN, function(x) library(x,character.only = TRUE))
 purrr::walk(requiredBiocPackages, function(x) library(x,character.only = TRUE))
 my_layout <- function(level, ...) {
-  paste0(format(Sys.time()), " [", level, "] ", ..., collapse = "")
+  paste(format(Sys.time()), "[", level, "]", ..., sep = " ", collapse = "", "\n")
 }
 logger <- logger(appenders=console_appender(my_layout))
-level(logger) <- "INFO"
+level(logger) <- "DEBUG"
 
 ### Part1: Set Directory and corlor###
-data_dir <- "/mnt/gtklab01/xiaoqing/Run2_Nov_18/star/result"
-info(logger,glue("You have set your data directory as {data_dir}"))
+# data_dir <- "/mnt/gtklab01/xiaoqing/Run2_Nov_18/star/result"
+# info(logger,glue("You have set your data directory as {data_dir}"))
 treatment_group <- c(104,108,128,154)
 control_group <- c(120,125,147,148)
 info(logger,glue("You have defined CTX_{paste(treatment_group, collapse = ', CTX_')} as treatment and CTX_{paste(control_group, collapse = ', CTX_')} as control"))
@@ -49,25 +49,33 @@ if (!file.exists("/mnt/gtklab01/xiaoqing/scaffold/cytoBandIdeo.txt.gz")) {
 }
 cytobands <- read_tsv("/mnt/gtklab01/xiaoqing/scaffold/cytoBandIdeo.txt.gz",
          col_names = c("chrom","chromStart","chromEnd","name","gieStain"),show_col_types = FALSE)
-# get bigwig file path
-bw_fileinfo <- expand_grid(tibble(treatment=rep(c("control","treatment"),each=4),
-       group=c(control_group,treatment_group)),
-       tag=condition_tag) |>
-  mutate(bw_path=glue::glue("{data_dir}/unmapped_CTX_{group}_{tag}.bw"))
-#get bam file path
-bam_fileinfo <- expand_grid(tibble(treatment=rep(c("control","treatment"),each=4),
-       group=c(control_group,treatment_group)),
-       tag=condition_tag) |>
-  mutate(bam_path=glue::glue("{data_dir}/unmappedAligned.sortedByCoord.out_CTX_{group}_{tag}.bam"))
+# # get bigwig file path
+# bw_fileinfo <- expand_grid(tibble(treatment=rep(c("control","treatment"),each=4),
+#        group=c(control_group,treatment_group)),
+#        tag=condition_tag) |>
+#   mutate(bw_path=glue::glue("{data_dir}/unmapped_CTX_{group}_{tag}.bw"))
+# #get bam file path
+# bam_fileinfo <- expand_grid(tibble(treatment=rep(c("control","treatment"),each=4),
+#        group=c(control_group,treatment_group)),
+#        tag=condition_tag) |>
+#   mutate(bam_path=glue::glue("{data_dir}/unmappedAligned.sortedByCoord.out_CTX_{group}_{tag}.bam"))
 #get bed file path
-intron_data <- import.bed("/mnt/gtklab01/xiaoqing/decoy/decoy3/intronic.bed")
-mashmap_data <- import.bed("/mnt/gtklab01/xiaoqing/decoy/decoy3/genome_found_sorted.bed")
-exon_data <- import.bed("/mnt/gtklab01/xiaoqing/decoy/decoy3/exon_out.bed")
+# intron_data <- import.bed("/mnt/gtklab01/xiaoqing/decoy/decoy3/intronic.bed")
+# mashmap_data <- import.bed("/mnt/gtklab01/xiaoqing/decoy/decoy3/genome_found_sorted.bed")
+# exon_data <- import.bed("/mnt/gtklab01/xiaoqing/decoy/decoy3/exon_out.bed")
 options(ucscChromosomeNames=FALSE)
 
 ### Part3: Getting Track Information ###
-tracklist <- function(goi){
-    gr <- enlarge_gr(goi)
+tracklist <- function(goi,run_number){
+  debug(logger,glue("You're now working on extracting tracks for visualization."))
+  run_database <- get_data_dir(run_number)
+  run_decoy <- get_decoy_dir(run_number)
+  bw_fileinfo <- get_bw_path(run_database)
+  bam_fileinfo <- get_bam_path(run_database)
+  intron_data <- get_intron_bed(run_decoy)
+  mashmap_data <- get_mashmap_bed(run_decoy)
+  exon_data <- get_exon_bed(run_decoy)
+  gr <- geneRanges_GRCm39[goi]
 
     ## track:: cytobands
     idt <- IdeogramTrack(chromosome=as.character(chrom(gr)),
@@ -75,7 +83,7 @@ tracklist <- function(goi){
                      bands=cytobands,
                      from=start(gr),to=end(gr))
     show_track <- add_track(idt)
-    info(logger,glue("Added {length(idt)} track(s) cytbands."))
+    info(logger,glue("Added cytbands track."))
     info(logger,glue("Length of show track now is {length(show_track)}"))
 
     ## track:: current trxns
@@ -86,7 +94,7 @@ tracklist <- function(goi){
                              cex.group=0.4,
                              showId=TRUE)
     show_track <- add_track(grTrack,show_track)
-    info(logger,glue("Added {length(grTrack)} track(s) transcriptome"))
+    info(logger,glue("Added transcriptome track."))
     info(logger,glue("Length of show track now is {length(show_track)}"))
   
     ## track:: for bed
@@ -99,7 +107,7 @@ tracklist <- function(goi){
                                   start=start(gr),end=end(gr),
                                   fill='blue')
     show_track <- add_track(exon_track,show_track)
-    info(logger,glue("Added {length(exon_track)} track(s) exon region"))
+    info(logger,glue("Added exon region track. There are {length(exon_track)} exon(s)."))
     info(logger,glue("Length of show track now is {length(show_track)}"))
     intron_gr <- intron_data[queryHits(findOverlaps(intron_data, gr))]
     intron_track <- AnnotationTrack(intron_gr,
@@ -110,8 +118,9 @@ tracklist <- function(goi){
                   start=start(gr),end=end(gr),
                   fill='grey')
     show_track <- add_track(intron_track,show_track)
-    info(logger,glue("Added {length(intron_track)} track(s) pure intronic region"))
+    info(logger,glue("Added pure intronic region track. There are {length(intron_track)} intronic(s)."))
     info(logger,glue("Length of show track now is {length(show_track)}"))
+    seqlevels(mashmap_data, pruning.mode = "coarse") <- seqlevels(gr)
     mashmap_gr <- mashmap_data[queryHits(findOverlaps(mashmap_data, gr))]
     mashmap_track <- AnnotationTrack(mashmap_gr,
                   chromosome=as.character(chrom(gr)),
@@ -121,19 +130,21 @@ tracklist <- function(goi){
                   start=start(gr),end=end(gr),
                   fill='#FFA07A')
     show_track <- add_track(mashmap_track,show_track)
-    info(logger,glue("Added {length(intron_track)} track(s) mashmap alignment region"))
+    info(logger,glue("Added mashmap alignment region"))
     info(logger,glue("Length of show track now is {length(show_track)}"))
 
     ## track:: for bw
+    debug(logger,glue("There are {length(rownames(bw_fileinfo))} lines of 'bw_fileinfo', right before 'control_bw_data'."))
     control_bw_data <- merge_treatment_bw(selection_range = gr,
                                      treatment_n = "control")
+    debug(logger,glue("Now the bw_fileinfo is {length(rownames(bw_fileinfo))}, right before 'ko_bw_data'."))
     ko_bw_data <- merge_treatment_bw(selection_range = gr,
                                      treatment_n = "treatment")
     ylim <- get_ylim(first_set=control_bw_data,second_set=ko_bw_data)
     ylim_list <- lapply(names(control_bw_data), function(condition_tag) {
         get_ylim(control_bw_data, ko_bw_data, condition_tag)
     })
-
+    debug(logger,glue("There are {length(rownames(bw_fileinfo))} lines of 'bw_fileinfo', right before 'control_datatrack'."))
     control_datatrack <- map(names(control_bw_data),
         function(n) {
             color <- control_shades[match(n,names(control_bw_data))]
@@ -147,7 +158,7 @@ tracklist <- function(goi){
     show_track <- add_track(control_datatrack,show_track)
     info(logger,glue("Added {length(control_datatrack)} track(s) bw data for control group"))
     info(logger,glue("Length of show track now is {length(show_track)}"))
-
+    debug(logger,glue("There are {length(rownames(bw_fileinfo))} lines of 'bw_fileinfo', right before 'ko_datatrack'."))
     ko_datatrack <- map(names(ko_bw_data),
         function(n) {
             color <- treatment_shades[match(n,names(ko_bw_data))]
@@ -168,7 +179,6 @@ tracklist <- function(goi){
             index <- match(n,names(control_bw_data))
             ylim <- ylim_list[index]
             title <- paste0("stack_",n)
-            debug(logger,title)
             OverlayTrack(trackList = list(control_datatrack[[index]],ko_datatrack[[index]]),
                 name = title,
                 ylim = ylim

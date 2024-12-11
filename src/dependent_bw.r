@@ -2,6 +2,66 @@
 # Purpose: Clean up and wrap up all self-defined small function used in visualize_mapping.r
 # Note: This code file is extracted from visualization_bw.qmd, please refer back for detailed information and explaination.
 
+get_data_dir <- function(run_number) {
+  search_directory <- "/mnt/gtklab01/xiaoqing"
+  matching_folders <- list.files(path = search_directory, pattern = run_number, full.names = TRUE)
+  data_dir <- glue::glue("{matching_folders}/star/result")
+  info(logger,glue("You have set your data directory as {data_dir}"))
+  return(data_dir)
+}
+get_bw_path <- function(path) {
+  data_dir <- path
+  bw_fileinfo <- expand_grid(tibble(treatment=rep(c("control","treatment"),each=4),
+                                    group=c(control_group,treatment_group)),
+                             tag=condition_tag) |>
+    mutate(bw_path=glue::glue("{data_dir}/unmapped_CTX_{group}_{tag}.bw"))
+  return(bw_fileinfo)
+}
+get_bam_path <- function(path) {
+  data_dir <- path
+  bam_fileinfo <- expand_grid(tibble(treatment=rep(c("control","treatment"),each=4),
+                                     group=c(control_group,treatment_group)),
+                              tag=condition_tag) |>
+    mutate(bam_path=glue::glue("{data_dir}/unmappedAligned.sortedByCoord.out_CTX_{group}_{tag}.bam"))
+  return(bam_fileinfo)
+}
+run_decoy_match <- list(
+  "Run2" = "decoy3",
+  "Run3" = "decoy5",
+  "Run4" = "decoy6"
+)
+
+get_decoy_dir <- function(run_number) {
+  search_directory <- "/mnt/gtklab01/xiaoqing/decoy"
+  decoy_number <- run_decoy_match[[run_number]]
+  decoy_dir <- glue::glue("{search_directory}/{decoy_number}")
+  info(logger,glue("You have set your decoy directory as {decoy_dir}"))
+  return(decoy_dir)
+}
+
+get_intron_bed <- function(path) {
+  data_dir <- path
+  intron_path <- paste0({data_dir},"/intronic.bed")
+  intron_data <- import.bed(intron_path)
+  return(intron_data)
+}
+get_mashmap_bed <- function(path) {
+  data_dir <- path
+  if (str_sub(as.character(path), -1, -1)=="3") {
+    mashmap_path <- paste0({data_dir},"/genome_found_sorted.bed")
+  } else {
+    mashmap_path <- paste0({data_dir},"/mashmap_intergenic.bed")
+  }
+  mashmap_data <- import.bed(mashmap_path)
+  return(mashmap_data)
+}
+
+get_exon_bed <- function(path) {
+  data_dir <- path
+  exon_path <- paste0({data_dir},"/exon_sort.bed")
+  exon_data <- import.bed(exon_path)
+  return(exon_data)
+}
 
 import_bigwig <- function(file,bw_selection) {
   bw_data <- BRGenomics::makeGRangesBRG(import.bw(file,selection=rtracklayer::BigWigSelection(bw_selection)))

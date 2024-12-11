@@ -4,6 +4,7 @@ library(shiny)
 source("~/Capstone/src/dependent_bw.r")
 source("~/Capstone/src/plot_shiny.r")
 
+
 ui <- fillPage(
   shiny::tags$head(
     shiny::tags$style(
@@ -27,6 +28,9 @@ ui <- fillPage(
       width = 12,
       style = "background-color:lightgrey;padding: 20px;margin-left: 10px;",
       textInput("gene", "Enter Gene Name or ID:", value = ""),
+      selectInput("run_set", "Select the Run you want to visualize:", 
+                  choices = c("mashmap & intronic" = "Run3", "mashmap" = "Run4", "old mapmash & intronic" = "Run2"),
+                  selected = 3),
       actionButton("get_gene", "Confirm", class="btn-info btn-block"),
       br(),
       selectInput("dataset", "Select Addional Dataset:", 
@@ -77,14 +81,15 @@ server <- function(input, output, session) {
     req(gene_id)
     gene_id()
   })
-  
+
   # Generate the tracklist based on the gene ID
   current <- eventReactive(input$plot, {
     req(gene_id())
+    req(input$run_set)
     id <- showNotification("Getting track data...", duration = NULL, closeButton = FALSE,type="warning")
     on.exit(removeNotification(id), add = TRUE)
     waiter::Waiter$new(id = "classicPlot")$show()
-    tracklist(gene_id())
+    tracklist(gene_id(),input$run_set)
   })
   
   observeEvent(input$plot, {

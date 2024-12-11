@@ -69,27 +69,27 @@ rule unmap_id_separate:
 
 rule unmapped_sequence:
     input:
-        name=f"{output_dir}/salmon/{{sample}}/aux_info/unmapped_{{tag}}.lst",
+        name=lambda wildcards: f"{output_dir}/salmon/{wildcards.sample}/aux_info/unmapped_{wildcards.tag}.lst",
         reads_1=lambda wildcards: f"{config['RNA_READS_DIR']}/{wildcards.sample}_1.fq.gz",
         reads_2=lambda wildcards: f"{config['RNA_READS_DIR']}/{wildcards.sample}_2.fq.gz"
     output:
-        unmapped_1="{unmapped_seq_dir}/{sample}_{tag}_unmapped_seq_1.fq",
-        unmapped_2="{unmapped_seq_dir}/{sample}_{tag}_unmapped_seq_2.fq"
+        unmapped_1=f"{output_dir}/star/seq/{{sample}}_{{tag}}_unmapped_seq_1.fq",
+        unmapped_2=f"{output_dir}/star/seq/{{sample}}_{{tag}}_unmapped_seq_2.fq"
     params:
         unmapped_seq_dir=f"{output_dir}/star/seq"
     shell:
         """
         mkdir -p {params.unmapped_seq_dir}
         echo "Processing {wildcards.sample}, type {wildcards.tag}."
-        seqtk subque {input.reads_1}{input.name} > {output.unmapped_1}
-        seqtk subque {input.reads_2}{input.name} > {output.unmapped_2}
+        seqtk subseq {input.reads_1} {input.name} > {output.unmapped_1}
+        seqtk subseq {input.reads_2} {input.name} > {output.unmapped_2}
         """
 
 rule STAR_align_reads:
     input:
         reads_tag_file="/mnt/gtklab01/xiaoqing/sample/sample_name_tag.txt",
-        unmapped_seq_1=expand(f"{output_dir}/star/seq/{{sample}}_{{type}}_unmapped_seq_1.fq", sample=config["samples"], type=["d", "m1", "m2", "u"]),
-        unmapped_seq_2=expand(f"{output_dir}/star/seq/{{sample}}_{{type}}_unmapped_seq_2.fq", sample=config["samples"], type=["d", "m1", "m2", "u"]),
+        unmapped_seq_1=expand(f"{output_dir}/star/seq/{{sample}}_{{tag}}_unmapped_seq_1.fq", sample=config["samples"], tag=config["tags"]),
+        unmapped_seq_2=expand(f"{output_dir}/star/seq/{{sample}}_{{tag}}_unmapped_seq_2.fq", sample=config["samples"], tag=config["tags"]),
         genome_dir=config['Files']['stargenome']
     output:
         bam=f"{output_dir}/star/result/unmappedAligned.sortedByCoord.out.bam"
@@ -112,7 +112,7 @@ rule STAR_align_reads:
             STAR --runMode alignReads \
                  --genomeDir {input.genome_dir} \
                  --readFilesIn {onefiles} {twofiles} \
-                 --outSAMattrRGline "{rgline}" \
+                 --outSAMattrRGline {rgline} \
                  --outFileNamePrefix {params.unmapped_bam_dir}/unmapped \
                  --outSAMtype BAM SortedByCoordinate \
                  --readFilesCommand cat \
@@ -127,13 +127,23 @@ rule split_bam:
     input:
         f"{output_dir}/star/result/unmappedAligned.sortedByCoord.out.bam"
     output:
-        f"{output_dir}/star/result/unmappedAligned.sortedByCoord.out_{{sample}}_{{tag}}.bam"
+        temp(f"{output_dir}/star/result/mytask.done")
     params:
         unmapped_bam_dir=f"{output_dir}/star/result"
     shell:
         """
         cd {params.unmapped_bam_dir}
         samtools split -f '%*_%!.%.' {input}
+        touch {output}
+        """
+
+rule middle_touch:
+    input: flag=f"{output_dir}/star/result/mytask.done"
+    output: f"{output_dir}/star/result/unmappedAligned.sortedByCoord.out_{{sample}}_{{tag}}.bam"
+    shell:
+        """
+        echo "Processing {wildcards.sample}, type {wildcards.tag}."
+        touch {output}
         """
 
 rule bamtobw:
@@ -144,6 +154,7 @@ rule bamtobw:
         bigwig=f"{output_dir}/star/result/unmapped_{{sample}}_{{tag}}.bw"
     shell:
         """
+        touch {input.flag}
         echo "Processing {wildcards.sample}, type {wildcards.tag}."
         samtools index {input.bam} {output.bam_index}
         bamCoverage -b {input.bam} -o {output.bigwig}

@@ -1,63 +1,107 @@
 library(shiny)
+library(shinydashboard)
+library(waiter)
+library(shinycssloaders)
 
 # Source function R script
 source("~/Capstone/src/dependent_bw.r")
 source("~/Capstone/src/plot_shiny.r")
-
-
-ui <- fillPage(
-  shiny::tags$head(
-    shiny::tags$style(
-      HTML(".shiny-notification {
+css <- '
+        .shiny-notification {
              position:fixed;
              top: calc(30%);
              left: calc(40%);
              font-size: 2em;
-             }
-             "
-      )
+        }
+        .main-content{
+            overflow-y: auto;
+            height: 100vh
+        }
+        .tooltip {
+            pointer-events: none;
+        }
+        .tooltip > .tooltip-inner {
+              pointer-events: none;
+              background-color: #E0E0E0;
+              color: black;
+              padding: 10px;
+              font-size: 15px;
+              font-style: normal;
+              text-align: left;
+              margin-left: 0;
+              max-width: 300px;
+        }
+        .tooltip > .arrow::before {
+              border-right-color: black;
+        }
+'
+js <- "
+$(function () {
+  $('[data-toggle=tooltip]').tooltip()
+})
+"
+titlecontent <- "Usage Instruction:<br>
+    <strong>1. Enter Name or ID:</strong> Input the desired name or ID into the text box at the top and confirm by clicking the checkmark icon.<br>
+    <strong>2. Select Run:</strong> Use the dropdown to choose the run you want to visualize.<br>
+    <strong>3. Select Additional Dataset (Optional):</strong> Use the second dropdown to select an additional dataset, if needed.<br>
+    <strong>4. Generate Plot:</strong> Click the blue 'Generate Plot' button to create the visualization.<br>
+    <strong>5. Download Output:</strong> Click the 'PDF' or 'SVG' buttons to download the generated plot in your preferred format.
+  "
+ui <- dashboardPage(
+  dashboardHeader(title=span(
+    "Gene Visualization",
+    span(
+      `data-toggle` = "tooltip", `data-placement` = "right",`data-html` = "true",
+      title = titlecontent,
+      icon("info-circle")
     )
-  ),
-  waiter::use_waiter(),
-  titlePanel(h2("Gene Visualization",align="center")),
+  )),
+  # titlePanel(h2("Gene Visualization",align="center")),
   # sidebarLayout(
   #   sidebarPanel(
-  fillRow(
-    flex = c(2,8),
-    column(
-      width = 12,
-      style = "background-color:lightgrey;padding: 20px;margin-left: 10px;",
-      textInput("gene", "Enter Gene Name or ID:", value = ""),
+  # fillRow(
+  #   flex = c(2,8),
+  #   column(
+  #     width = 12,
+  #     style = "background-color:lightgrey;padding: 20px;margin-left: 10px;",
+  dashboardSidebar(
+      # textInput("gene", "Enter Gene Name or ID:", value = ""),
+      sidebarSearchForm("gene","get_gene",label = "Enter Name or ID",icon = shiny::icon("ok",lib = "glyphicon")),
       selectInput("run_set", "Select the Run you want to visualize:", 
                   choices = c("mashmap & intronic" = "Run3", "mashmap" = "Run4", "old mapmash & intronic" = "Run2"),
-                  selected = 3),
-      actionButton("get_gene", "Confirm", class="btn-info btn-block"),
-      br(),
+                  selected = "Run3"),
+      # column(12,actionButton("get_gene", "Confirm", class="btn-info btn-block")),
       selectInput("dataset", "Select Addional Dataset:", 
                   choices = c("","decoy set" = "d_set", "m1 match set" = "m1_set", "m2 match set" = "m2_set"),
                   selected = NULL),
       br(),
-      actionButton("plot","Generate Plot", icon("binoculars"), class = "btn-primary btn-block"),
+      actionButton("plot","Generate Plot", icon("binoculars"), width = '200px', class = "btn-primary btn-block"),
       br(),
-      fluidRow(
-        column(6,downloadButton("download_pdf", "PDF", class = "btn-info btn-block")),
-        column(6,downloadButton("download_svg", "SVG", class = "btn-block"))
+      fillRow(
+        column(12,downloadButton("download_pdf", "PDF", class = "btn-info btn-block")),
+        column(12,downloadButton("download_svg", "SVG", class = "btn-block"))
       )
     ),
     # mainPanel(
-    column(
-      width = 12,
-      tabsetPanel(
+    # column(
+    #   width = 12,
+  dashboardBody(
+    shiny::tags$head(
+      shiny::tags$style(HTML(css)),
+      tags$script(HTML(js))
+    ),
+    waiter::use_waiter(),
+      tabBox(width = 12,
         tabPanel("Classic Plot",
                  titlePanel(h3(textOutput("title1"),align="center")),
-                 plotOutput("classicPlot")),
+                 plotOutput("classicPlot",height = 900)),
         tabPanel("Selected Dataset Plot",
                  titlePanel(h3(textOutput("title2"),align="center")),
-                 plotOutput("datasetPlot"))
+                 shinycssloaders::withSpinner(plotOutput("datasetPlot")))
       )
     )
   )
-)
+# )
 
 # Define Server
 server <- function(input, output, session) {

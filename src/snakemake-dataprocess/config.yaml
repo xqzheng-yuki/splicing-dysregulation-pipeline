@@ -4,7 +4,7 @@ Files:
   chromsize: "/mnt/gtklab01/linglab/mmusculus_annotation_files/GRCm39.chrNameLength.txt"
   stargenome: "/mnt/gtklab01/linglab/mmusculus_annotation_files/STAR_v2.7.9a_index_mmusculus_gencode.vM29"
 
-src_dir: "~/Capstone/src"
+src_dir: "~/Capstone/src/Archieved"
 decoy_dir: "/mnt/gtklab01/xiaoqing/decoy/decoy{decoy_number}"
 decoy_number: 4
 run_number: 3

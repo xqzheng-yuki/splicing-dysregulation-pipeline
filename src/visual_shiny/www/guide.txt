@@ -1,0 +1,6 @@
+Usage Instruction:<br>
+<strong>1. Enter Name or ID:</strong> Input the desired name or ID into the text box at the top and confirm by clicking the checkmark icon.<br>
+<strong>2. Select Run:</strong> Use the dropdown to choose the run you want to visualize.<br>
+<strong>3. Select Additional Dataset (Optional):</strong> Use the second dropdown to select an additional dataset, if needed.<br>
+<strong>4. Generate Plot:</strong> Click the blue 'Generate Plot' button to create the visualization.<br>
+<strong>5. Download Output:</strong> Click the 'PDF' or 'SVG' buttons to download the generated plot in your preferred format.

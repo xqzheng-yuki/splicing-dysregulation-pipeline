@@ -1,0 +1,27 @@
+.shiny-notification {
+    position:fixed;
+    top: calc(30%);
+    left: calc(40%);
+    font-size: 2em;
+}
+.main-content{
+   overflow-y: auto;
+   height: 100vh
+}
+.tooltip {
+   pointer-events: none;
+}
+.tooltip > .tooltip-inner {
+     pointer-events: none;
+     background-color: #E0E0E0;
+     color: black;
+     padding: 10px;
+     font-size: 15px;
+     font-style: normal;
+     text-align: left;
+     margin-left: 0;
+     max-width: 300px;
+}
+.tooltip > .arrow::before {
+     border-right-color: black;
+}

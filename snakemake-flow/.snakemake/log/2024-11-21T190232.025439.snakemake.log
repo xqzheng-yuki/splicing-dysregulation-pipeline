@@ -1,5 +1,0 @@
-Building DAG of jobs...
-MissingInputException in line 7 of /mnt/cbis/home/e1124735/Capstone/snakemake-flow/Snakefile:
-Missing input files for rule all:
-/mnt/gtklab01/xiaoqing/salmon/index/decoy2/gentrom.fa
-/mnt/gtklab01/xiaoqing/salmon/index/decoy2/decoy.txt

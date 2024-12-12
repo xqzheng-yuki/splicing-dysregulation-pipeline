@@ -16,7 +16,7 @@
 import os
 import re
 
-configfile: "/mnt/cbis/home/e1124735/Capstone/snakemake-flow/config.yaml"
+configfile: "config.yaml"
 awk = config["awk"]
 log: "logs/generatedecoy.log"
 output_dir = config['output_dir'].format(decoy_number=config['decoy_number'])

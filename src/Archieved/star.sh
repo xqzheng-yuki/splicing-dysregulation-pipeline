@@ -1,25 +1,43 @@
 #!/bin/bash
 
-# directory
-GENOME_DIR="/mnt/gtklab01/linglab/mmusculus_annotation_files/STAR_v2.7.9a_index_mmusculus_gencode.vM29"
-READS_DIR="/mnt/gtklab01/xiaoqing/star/data"
-OUTPUT_DIR="/mnt/gtklab01/xiaoqing/star"
+# File: star.sh
+# Purpose: This script align and map the unmapped read
+# Dependencies: bash, STAR
+# Input: STAR index file, compressed fastq file
+# Output: STAR standard output files, with alignment file as "BAM file sorted by coordinate"
+# Usage: sh star-all.sh
+# Version History:
+# v1.0 Initial release
+# v2.0 Make change to accept sorted input
+# Note: Ensure that the directory is the same or redirect by your need
+set -o pipefail
+## the actual name of the script directory
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source "${SCRIPT_DIR}/atlas-config.sh"
+
 # check if output directory exist
-mkdir -p $OUTPUT_DIR
+mkdir -p $UNMAPPED_BAM_DIR/group/$DATE
+READS_TAG_FILE="/mnt/gtklab01/xiaoqing/sample_name_tag.txt"
+readarray -t samples < $READS_TAG_FILE 
 
-# read input read files from separate file
-READS_FILE="/mnt/gtklab01/xiaoqing/sample_name.txt"
+ONEFILES=$(printf "%s_unmapped_seq_1.fq," ${samples[@]})
+ONEFILES=${ONEFILES::-1}
+TWOFILES=$(printf "%s_unmapped_seq_2.fq," ${samples[@]})
+TWOFILES=${TWOFILES::-1}
+RGLINE=$(printf "ID:%s , " ${samples[@]})
+RGLINE=${RGLINE::-3}
 
-index=1
-while read SAMPLE_NAME; do
-    echo "Sample ${index}: Working on ${SAMPLE_NAME}."
-    # main body
-    STAR --runMode alignReads \
+cd $UNMAPPED_SEQ_DIR/$DATE
+
+STAR --runMode alignReads \
     --genomeDir $GENOME_DIR \
-    --readFilesIn $READS_DIR/${SAMPLE_NAME}_unmapped_seq_1.fq.gz $READS_DIR/${SAMPLE_NAME}_unmapped_seq_2.fq.gz \
-    --outFileNamePrefix $OUTPUT_DIR/$SAMPLE_NAME/${SAMPLE_NAME}_ \
+    --readFilesIn $ONEFILES $TWOFILES \
+    --outSAMattrRGline $RGLINE \
+    --outFileNamePrefix $UNMAPPED_BAM_DIR/group/$DATE/unmapped \
     --outSAMtype BAM SortedByCoordinate \
-    --readFilesCommand zcat --runThreadN 8 --outSAMattributes MD NH XS --outSAMunmapped Within --twopassMode Basic
-    echo ""
-    index=$(expr $index + 1)
-done < $READS_FILE
+    --readFilesCommand cat --runThreadN 8 --outSAMattributes MD NH XS --outSAMunmapped Within --twopassMode Basic
+
+cd $UNMAPPED_BAM_DIR/group/$DATE
+# Split the BAM file into separate files based on read groups or other tags, 
+# naming the output files dynamically using the format string.
+samtools split -f '%*_%!.%.' unmappedAligned.sortedByCoord.out.bam

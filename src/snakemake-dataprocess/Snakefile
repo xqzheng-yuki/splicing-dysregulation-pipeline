@@ -17,6 +17,7 @@ import os
 import re
 from datetime import datetime
 
+
 configfile: "/mnt/cbis/home/e1124735/Capstone/src/snakemake-dataprocess/config.yaml"
 decoy_dir = config['decoy_dir'].format(decoy_number=config['decoy_number'])
 DATE = config.get("date", datetime.now().strftime("%b_%d"))
@@ -127,23 +128,13 @@ rule split_bam:
     input:
         f"{output_dir}/star/result/unmappedAligned.sortedByCoord.out.bam"
     output:
-        temp(f"{output_dir}/star/result/mytask.done")
+        expand("{output_dir}/star/result/unmappedAligned.sortedByCoord.out_{SAMPLE}_{TAG}.bam",output_dir=output_dir,SAMPLE=config['samples'],TAG=config['tags'])
     params:
         unmapped_bam_dir=f"{output_dir}/star/result"
     shell:
         """
         cd {params.unmapped_bam_dir}
         samtools split -f '%*_%!.%.' {input}
-        touch {output}
-        """
-
-rule middle_touch:
-    input: flag=f"{output_dir}/star/result/mytask.done"
-    output: f"{output_dir}/star/result/unmappedAligned.sortedByCoord.out_{{sample}}_{{tag}}.bam"
-    shell:
-        """
-        echo "Processing {wildcards.sample}, type {wildcards.tag}."
-        touch {output}
         """
 
 rule bamtobw:
@@ -154,7 +145,6 @@ rule bamtobw:
         bigwig=f"{output_dir}/star/result/unmapped_{{sample}}_{{tag}}.bw"
     shell:
         """
-        touch {input.flag}
         echo "Processing {wildcards.sample}, type {wildcards.tag}."
         samtools index {input.bam} {output.bam_index}
         bamCoverage -b {input.bam} -o {output.bigwig}

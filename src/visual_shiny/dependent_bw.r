@@ -158,3 +158,23 @@ enlarge_gr <- function(goi) {
   end(gr) <- end(gr) + embiggen_factor
   return(gr)
 }
+
+
+#' add_new_plots
+#' update the state of the app with the most recent plot
+#' @param state
+#' @param classic_plot_func 
+#' @param dataset_plot_func 
+#'
+#' @return state
+#' @export
+#'
+#' @examples
+add_new_plots <- function(state, classic_plot_func, dataset_plot_func) {
+  state$results <- append(state$results, list(
+    list(classic = classic_plot_func, dataset = dataset_plot_func)
+  ))
+  state$current_index <- length(state$results) # Set to the latest added
+  info(logger,paste0("The state is ",length(state$results)))
+  state
+}

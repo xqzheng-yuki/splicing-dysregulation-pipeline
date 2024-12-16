@@ -25,3 +25,7 @@
 .tooltip > .arrow::before {
      border-right-color: black;
 }
+.right-align-btn {
+    float: right !important;
+    margin-right: 10px !important;
+}

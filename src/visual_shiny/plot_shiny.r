@@ -136,10 +136,12 @@ tracklist <- function(goi,run_number){
     ## track:: for bw
     debug(logger,glue("There are {length(rownames(bw_fileinfo))} lines of 'bw_fileinfo', right before 'control_bw_data'."))
     control_bw_data <- merge_treatment_bw(selection_range = gr,
-                                     treatment_n = "control")
+                                     treatment_n = "control",
+                                     bwinfo = bw_fileinfo)
     debug(logger,glue("Now the bw_fileinfo is {length(rownames(bw_fileinfo))}, right before 'ko_bw_data'."))
     ko_bw_data <- merge_treatment_bw(selection_range = gr,
-                                     treatment_n = "treatment")
+                                     treatment_n = "treatment",
+                                     bwinfo = bw_fileinfo)
     ylim <- get_ylim(first_set=control_bw_data,second_set=ko_bw_data)
     ylim_list <- lapply(names(control_bw_data), function(condition_tag) {
         get_ylim(control_bw_data, ko_bw_data, condition_tag)
@@ -218,5 +220,5 @@ tracklist <- function(goi,run_number){
 
 plotplot <- function(tracklist,goi) {
     gr <- enlarge_gr(goi)
-    plotTracks(tracklist, cex.sampleNames = 0.5, from = start(gr), to = end(gr))
+    plotTracks(tracklist, cex.sampleNames = 0.5, from = start(gr), to = end(gr),main = gr$symbol, fontface.main = 1.5)
 }

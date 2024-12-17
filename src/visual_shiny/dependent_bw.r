@@ -175,6 +175,7 @@ add_new_plots <- function(state, classic_plot_func, dataset_plot_func) {
     list(classic = classic_plot_func, dataset = dataset_plot_func)
   ))
   state$current_index <- length(state$results) # Set to the latest added
+  # state$results[[state$current_index + 1]] <- recordPlot()
   info(logger,paste0("The state is ",length(state$results)))
   state
 }

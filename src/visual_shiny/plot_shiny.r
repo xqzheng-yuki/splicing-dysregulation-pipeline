@@ -16,7 +16,7 @@ my_layout <- function(level, ...) {
   paste(format(Sys.time()), "[", level, "]", ..., sep = " ", collapse = "", "\n")
 }
 logger <- logger(appenders=console_appender(my_layout))
-level(logger) <- "DEBUG"
+level(logger) <- "INFO"
 
 ### Part1: Set Directory and corlor###
 # data_dir <- "/mnt/gtklab01/xiaoqing/Run2_Nov_18/star/result"
@@ -77,15 +77,6 @@ tracklist <- function(goi,run_number){
   exon_data <- get_exon_bed(run_decoy)
   gr <- geneRanges_GRCm39[goi]
 
-    ## track:: cytobands
-    idt <- IdeogramTrack(chromosome=as.character(chrom(gr)),
-                     genome='mm39',
-                     bands=cytobands,
-                     from=start(gr),to=end(gr))
-    show_track <- add_track(idt)
-    info(logger,glue("Added cytbands track."))
-    info(logger,glue("Length of show track now is {length(show_track)}"))
-
     ## track:: current trxns
     grTrack <- GeneRegionTrack(ensembldb::filter(GRCm39, ~ gene_id == goi),
                              name=gr$symbol,
@@ -93,9 +84,9 @@ tracklist <- function(goi,run_number){
                              end=end(gr),
                              cex.group=0.4,
                              showId=TRUE)
-    show_track <- add_track(grTrack,show_track)
-    info(logger,glue("Added transcriptome track."))
-    info(logger,glue("Length of show track now is {length(show_track)}"))
+    show_track <- add_track(grTrack)
+    debug(logger,glue("Added transcriptome track."))
+    debug(logger,glue("Length of show track now is {length(show_track)}"))
   
     ## track:: for bed
     exon_gr <- exon_data[queryHits(findOverlaps(exon_data, gr))]
@@ -107,8 +98,8 @@ tracklist <- function(goi,run_number){
                                   start=start(gr),end=end(gr),
                                   fill='blue')
     show_track <- add_track(exon_track,show_track)
-    info(logger,glue("Added exon region track. There are {length(exon_track)} exon(s)."))
-    info(logger,glue("Length of show track now is {length(show_track)}"))
+    debug(logger,glue("Added exon region track. There are {length(exon_track)} exon(s)."))
+    debug(logger,glue("Length of show track now is {length(show_track)}"))
     intron_gr <- intron_data[queryHits(findOverlaps(intron_data, gr))]
     intron_track <- AnnotationTrack(intron_gr,
                   chromosome=as.character(chrom(gr)),
@@ -118,8 +109,8 @@ tracklist <- function(goi,run_number){
                   start=start(gr),end=end(gr),
                   fill='grey')
     show_track <- add_track(intron_track,show_track)
-    info(logger,glue("Added pure intronic region track. There are {length(intron_track)} intronic(s)."))
-    info(logger,glue("Length of show track now is {length(show_track)}"))
+    debug(logger,glue("Added pure intronic region track. There are {length(intron_track)} intronic(s)."))
+    debug(logger,glue("Length of show track now is {length(show_track)}"))
     seqlevels(mashmap_data, pruning.mode = "coarse") <- seqlevels(gr)
     mashmap_gr <- mashmap_data[queryHits(findOverlaps(mashmap_data, gr))]
     mashmap_track <- AnnotationTrack(mashmap_gr,
@@ -130,8 +121,8 @@ tracklist <- function(goi,run_number){
                   start=start(gr),end=end(gr),
                   fill='#FFA07A')
     show_track <- add_track(mashmap_track,show_track)
-    info(logger,glue("Added mashmap alignment region"))
-    info(logger,glue("Length of show track now is {length(show_track)}"))
+    debug(logger,glue("Added mashmap alignment region"))
+    debug(logger,glue("Length of show track now is {length(show_track)}"))
 
     ## track:: for bw
     debug(logger,glue("There are {length(rownames(bw_fileinfo))} lines of 'bw_fileinfo', right before 'control_bw_data'."))
@@ -151,29 +142,29 @@ tracklist <- function(goi,run_number){
         function(n) {
             color <- control_shades[match(n,names(control_bw_data))]
             DataTrack(control_bw_data[[n]],
-                name = glue::glue("control_{n}"),
+                name = glue::glue("ctrl_{n}"),
                 type="polygon",
                 ylim = ylim,
                 fill.mountain=c("white",color),
                 col="black")
         })
     show_track <- add_track(control_datatrack,show_track)
-    info(logger,glue("Added {length(control_datatrack)} track(s) bw data for control group"))
-    info(logger,glue("Length of show track now is {length(show_track)}"))
+    debug(logger,glue("Added {length(control_datatrack)} track(s) bw data for control group"))
+    debug(logger,glue("Length of show track now is {length(show_track)}"))
     debug(logger,glue("There are {length(rownames(bw_fileinfo))} lines of 'bw_fileinfo', right before 'ko_datatrack'."))
     ko_datatrack <- map(names(ko_bw_data),
         function(n) {
             color <- treatment_shades[match(n,names(ko_bw_data))]
             DataTrack(ko_bw_data[[n]],
-                name = glue::glue("treatment_{n}"),
+                name = glue::glue("ko_{n}"),
                 type="polygon",
                 ylim = ylim,
                 fill.mountain=c("white",color),
                 col="black")
         })
     show_track <- add_track(ko_datatrack,show_track)
-    info(logger,glue("Added {length(ko_datatrack)} track(s) bw data for treatment group"))
-    info(logger,glue("Length of show track now is {length(show_track)}"))
+    debug(logger,glue("Added {length(ko_datatrack)} track(s) bw data for treatment group"))
+    debug(logger,glue("Length of show track now is {length(show_track)}"))
     
     ## track:: for overlap track
     stack_datatrack <- map(names(control_bw_data),
@@ -187,13 +178,13 @@ tracklist <- function(goi,run_number){
             )
     })
     show_track <- add_track(stack_datatrack,show_track)
-    info(logger,glue("Added {length(stack_datatrack)} track(s) overlay bw data grouped by type of unmapped"))
-    info(logger,glue("Length of show track now is {length(show_track)}"))
+    debug(logger,glue("Added {length(stack_datatrack)} track(s) overlay bw data grouped by type of unmapped"))
+    debug(logger,glue("Length of show track now is {length(show_track)}"))
 
     ## track:: sashimi
     alignment_track <- pmap(bam_fileinfo, function(treatment,group,tag,bam_path) {
         AlignmentsTrack(bam_path, start = start(gr), end= end(gr),chromosome=as.character(chrom(gr)),
-        type=c("coverage", "sashimi"),name=paste0("CTX_",group,"_",tag))
+        type=c("coverage", "sashimi"),name=paste0(group,"_",tag))
     })
     drow <- which(bam_fileinfo$tag=="d")
     m1row <- which(bam_fileinfo$tag=="m1")
@@ -202,23 +193,23 @@ tracklist <- function(goi,run_number){
     m1_ali_track <- alignment_track[m1row]
     m2_ali_track <- alignment_track[m2row]
     show_track <- add_track(d_ali_track,show_track)
-    info(logger,glue("Added {length(d_ali_track)} track(s) sashimi plot for map to decoy"))
-    info(logger,glue("Length of show track now is {length(show_track)}"))
+    debug(logger,glue("Added {length(d_ali_track)} track(s) sashimi plot for map to decoy"))
+    debug(logger,glue("Length of show track now is {length(show_track)}"))
     show_track <- add_track(m1_ali_track,show_track)
-    info(logger,glue("Added {length(m1_ali_track)} track(s) sashimi plot for map to m1"))
-    info(logger,glue("Length of show track now is {length(show_track)}"))
+    debug(logger,glue("Added {length(m1_ali_track)} track(s) sashimi plot for map to m1"))
+    debug(logger,glue("Length of show track now is {length(show_track)}"))
     show_track <- add_track(m2_ali_track,show_track)
-    info(logger,glue("Added {length(m2_ali_track)} track(s) sashimi plot for map to m2"))
-    info(logger,glue("Length of show track now is {length(show_track)}"))
+    debug(logger,glue("Added {length(m2_ali_track)} track(s) sashimi plot for map to m2"))
+    debug(logger,glue("Length of show track now is {length(show_track)}"))
 
     ## track:: genomic coordinates
     show_track <- add_track(GenomeAxisTrack(),show_track)
-    info(logger,glue("Added 1 track(s) genomic coordinate axis"))
+    debug(logger,glue("Added 1 track(s) genomic coordinate axis"))
     info(logger,glue("Length of show track now is {length(show_track)}"))
     return(show_track)
 }
 
 plotplot <- function(tracklist,goi) {
     gr <- enlarge_gr(goi)
-    plotTracks(tracklist, cex.sampleNames = 0.5, from = start(gr), to = end(gr),main = gr$symbol, fontface.main = 1.5)
+    plotTracks(tracklist, cex.sampleNames = 0.8, from = start(gr), to = end(gr), main = gr$symbol, fontface.main = 1.5, fontsize = 15)
 }

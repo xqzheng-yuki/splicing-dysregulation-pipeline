@@ -189,6 +189,8 @@ rule samplesheet:
     input:
         bigwig=expand(os.path.join(output_dir,"star/result/{sample}/{tag}.bw"),
             sample=samples.index,tag=tags),
+        bam=expand(os.path.join(output_dir,"star/result/{sample}/{tag}.sorted.bam"),
+            sample=samples.index,tag=tags)
     output:
         "results/samples.tsv"
     log:

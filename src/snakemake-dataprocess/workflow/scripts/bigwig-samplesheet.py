@@ -17,10 +17,12 @@ sample_info = pd.read_csv(snakemake.config["samples"], sep="\t", dtype=str, comm
 ## Get the 
 data = itertools.product(snakemake.params[0],snakemake.params[1])
 
+
 df = pd.DataFrame(data,columns=['sample','tag'])
 df = pd.DataFrame(data={'sample': df['sample'],
                    'tag': df['tag'],
-                   "bw": snakemake.input,
+                   "bw": snakemake.input.bigwig,
+                   "bam": snakemake.input.bam,
                    },dtype=str).set_index("sample")
 
 sample_info.join(df,on="sample").to_csv(snakemake.output[0],sep="\t")

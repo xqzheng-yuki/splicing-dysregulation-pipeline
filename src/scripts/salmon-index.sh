@@ -12,7 +12,7 @@ decoy=$2
 output=$3
 
 # activate conda environment
-source ~/miniconda3/etc/profile.d/conda.sh
+source ~e1124735/miniconda3/etc/profile.d/conda.sh
 conda activate salmon
 salmon index -t $gentrome --decoys $decoy -k 31 -p 8 -i $output
 conda deactivate

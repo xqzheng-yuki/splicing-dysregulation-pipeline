@@ -161,6 +161,18 @@ rule intergenic_decoy_intervals:
         {params.bedtools} merge -i {output.filtered_n_sorted} > {output.merged}
         """
 
+rule gene_map:
+    input:
+        db,
+    output:
+        output_dir.joinpath("genemap.tsv"),
+    conda:
+        "envs/gffutils.yaml"
+    log:
+        "logs/gene_map.log"
+    script:
+        "scripts/gene_map.py"
+
 rule intergenic_decoys:
     params:
         bedtools=config["bedtools"]

@@ -4,7 +4,6 @@ Paths:
   chromsize: "/mnt/gtklab01/linglab/mmusculus_annotation_files/GRCm39.chrNameLength.txt"
 
 output_dir: "/mnt/gtklab01/gtk/decoys/2024-12-20"
-decoy_number: 4
 
 transcript_type: protein_coding
 

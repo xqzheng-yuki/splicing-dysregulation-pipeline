@@ -7,7 +7,7 @@
 # - Input files and directories must be specified in the config file.
 # 
 # Output:
-# - Results will be stored in the directory defined by `output_dir/decoy_number` in config.yaml.
+# - defalut:"/mnt/gtklab01/gtk/decoys/2024-12-20"
 #
 # Notes:
 # - This workflow requires the following tools: bwa, samtools, awk.
@@ -48,7 +48,9 @@ container: "docker://continuumio/miniconda3"
 rule all:
     input:
         f"{output_dir}/gentrom.fa",
-        f"{output_dir}/decoy.txt"
+        f"{output_dir}/decoy.txt",
+        f"{output_dir}/mm_gentrom.fa",
+        f"{output_dir}/mm_decoy.txt"
 
 rule extract_trxn:
     params:
@@ -71,7 +73,7 @@ rule index_transcriptome:
     output:
         f"{output_dir}/transcripts.fa.fai",
     log:
-        "transcripts.log",
+        "logs/transcripts.log",
     params:
         extra="",
     wrapper:
@@ -109,7 +111,7 @@ rule mask_genome:
         fasta=config["Paths"]["genomefile"],
         bedtools=config["bedtools"],
     input:
-        exon=f"{output_dir}/exon_merge.bed"
+        exon=f"{output_dir}/exons.merged.bed"
     output:
         temp(f"{output_dir}/reference.masked.genome.fa"),
     log:
@@ -217,6 +219,21 @@ rule make_gentrome:
     shell:
         """
         cat {input.trxn} {input.decoy} {input.intron} > {output}
+        """
+
+rule pure_mm:
+    input:
+        decoy=f"{output_dir}/decoy.fa",
+        trxn=f"{output_dir}/transcripts.fa"
+    output:
+        fa=f"{output_dir}/mm_gentrom.fa",
+        idlist=f"{output_dir}/mm_decoy.txt"
+    log:
+        "logs/pure_mm.log"
+    shell:
+        """
+        cat {input.decoy} {input.intron} > {output.fa}
+        grep -h ">" {input.decoy} | {params.awk} '{{print substr($1,2); }}' > {output.idlist}
         """
 
 rule extract_decoy_ids:

@@ -26,7 +26,7 @@ def get_gtf_file(wildcards):
 
 def get_gtf_db(wildcards):
     if "gtfdb" not in config["Files"]:
-        config["Files"]["gtfdb"] = f"{config["Files"]["gtffile"]}.db"
+        config["Files"]["gtfdb"] = f"{config['Files']['gtffile']}.db"
     return config["Files"]["gtfdb"]
 
 def get_genome_fasta(wildcards):

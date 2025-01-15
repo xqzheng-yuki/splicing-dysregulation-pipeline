@@ -49,8 +49,9 @@ rule all:
     input:
         f"{output_dir}/gentrom.fa",
         f"{output_dir}/decoy.txt",
-        f"{output_dir}/mm_gentrom.fa",
-        f"{output_dir}/mm_decoy.txt"
+        f"{output_dir}/mashmap/gentrom.fa",
+        f"{output_dir}/mashmap/decoy.txt",
+        f"{output_dir}/mashmap/genemap.tsv"
 
 rule extract_trxn:
     params:
@@ -226,16 +227,19 @@ rule pure_mm:
         awk=awk
     input:
         decoy=f"{output_dir}/decoy.fa",
-        trxn=f"{output_dir}/transcripts.fa"
+        trxn=f"{output_dir}/transcripts.fa",
+        genemap=output_dir.joinpath("genemap.tsv"),
     output:
-        fa=f"{output_dir}/mm_gentrom.fa",
-        idlist=f"{output_dir}/mm_decoy.txt"
+        fa=f"{output_dir}/mashmap/gentrom.fa",
+        idlist=f"{output_dir}/mashmap/decoy.txt",
+        gmap=f"{output_dir}/mashmap/genemap.tsv",
     log:
         "logs/pure_mm.log"
     shell:
         """
         cat {input.trxn} {input.decoy} > {output.fa}
         grep -h ">" {input.decoy} | {params.awk} '{{print substr($1,2); }}' > {output.idlist}
+        cp {input.genemap} {output.gmap}
         """
 
 rule extract_decoy_ids:

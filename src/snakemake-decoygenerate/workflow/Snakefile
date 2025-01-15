@@ -222,6 +222,8 @@ rule make_gentrome:
         """
 
 rule pure_mm:
+    params:
+        awk=awk
     input:
         decoy=f"{output_dir}/decoy.fa",
         trxn=f"{output_dir}/transcripts.fa"
@@ -232,7 +234,7 @@ rule pure_mm:
         "logs/pure_mm.log"
     shell:
         """
-        cat {input.decoy} {input.intron} > {output.fa}
+        cat {input.trxn} {input.decoy} > {output.fa}
         grep -h ">" {input.decoy} | {params.awk} '{{print substr($1,2); }}' > {output.idlist}
         """
 

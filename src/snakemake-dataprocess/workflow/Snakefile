@@ -37,7 +37,7 @@ wildcard_constraints:
 
 rule all:
     input:
-        "results/samples.tsv"
+        os.path.join(output_dir,"samples.tsv")
         #expand(os.path.join(output_dir,"star/result/{sample}/{tag}.bw"),
         #    sample=samples.index,tag=tags),
     log:
@@ -194,7 +194,7 @@ rule samplesheet:
         bam=expand(os.path.join(output_dir,"star/result/{sample}/{tag}.sorted.bam"),
             sample=samples.index,tag=tags)
     output:
-        "results/samples.tsv"
+        os.path.join(output_dir,"samples.tsv")
     log:
         "logs/result_samplefile.log",
     script:

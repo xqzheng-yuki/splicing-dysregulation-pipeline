@@ -42,6 +42,9 @@ get_decoy_dir <- function(run_number) {
 get_intron_bed <- function(path) {
   data_dir <- path
   intron_path <- paste0({data_dir},"/intronic.bed")
+  if (!file.exists(intron_path)) {
+    intron_path <- paste0({data_dir},"/intronic.pure.bed")
+    }
   intron_data <- import.bed(intron_path)
   return(intron_data)
 }
@@ -59,6 +62,9 @@ get_mashmap_bed <- function(path) {
 get_exon_bed <- function(path) {
   data_dir <- path
   exon_path <- paste0({data_dir},"/exon_sort.bed")
+  if (!file.exists(exon_path)) {
+    exon_path <- paste0({data_dir},"/exons.merged.bed")
+  }
   exon_data <- import.bed(exon_path)
   return(exon_data)
 }

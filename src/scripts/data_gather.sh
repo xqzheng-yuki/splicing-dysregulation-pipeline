@@ -19,6 +19,8 @@ for sample in "${samples[@]}"; do
     bam="/mnt/gtklab01/xiaoqing/2025-01-14/star/result/${sample%}/d.sorted.bam"
     lst="/mnt/gtklab01/xiaoqing/2025-01-14-list_filter/analysis/${sample%}_d.lst"
     filter_re="/mnt/gtklab01/xiaoqing/2025-01-14/filter/${sample%}_d.bam"
+    filter_bw="/mnt/gtklab01/xiaoqing/2025-01-14/filter/bw/${sample%}_d.bw"
     samtools view -N ${lst} -b ${bam} > ${filter_re}
     samtools index ${filter_re}
+    bamCoverage -b ${filter_re} -o ${filter_bw}
 done

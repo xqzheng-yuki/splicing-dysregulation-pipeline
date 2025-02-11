@@ -47,6 +47,6 @@ for sample in "${samples[@]}"; do
     for tag in "${tags[@]}"; do
         lst="/mnt/gtklab01/xiaoqing/2025-01-14-list_filter/analysis/${sample}_${tag}.lst"
         tsv_name="/mnt/gtklab01/xiaoqing/2025-01-14-list_filter/analysis/count/count_${sample}_${tag}.tsv"
-        samtools view -N ${lst} ${filter_bam} | cut -f3 | uniq -c | grep -v "," | awk '{print $2 "\t" $1}' > ${tsv_name}
+        samtools view -N ${lst} ${filter_bam} | cut -f3 | uniq -c | grep -v "," | awk '{print $2 "\t" $1}' >| ${tsv_name}
     done
 done

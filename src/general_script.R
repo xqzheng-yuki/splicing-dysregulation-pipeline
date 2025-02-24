@@ -16,8 +16,11 @@ get_tsv_path <- function(path) {
 get_gene_name <- function(geneID){
   matches <- which(elementMetadata(geneRanges_GRCm39)$gene_id == geneID)
   if (length(matches) == 0) {
-    warn(logger,"There is no match found.")}
+  #  warn(logger(),"There is no match found.")
+    gene_name_match = NA
+  } else {
   gene_name_match <- geneRanges_GRCm39[matches]$gene_name
+  }
   # info(logger,paste0("The gene ",geneID," match is ",gene_name_match))
   return(gene_name_match)
 }
@@ -44,3 +47,5 @@ tsv[["104_d"]][[1]][["gene"]][1]
 map_chr(tsv[["104_d"]][[1]][["gene"]],get_gene_name)
 my_tibble <- my_tibble %>% mutate(new_col = some_value)
 ggplot(data=de, aes(x=log2FoldChange, y=pvalue)) + geom_point()
+
+save(tsv,file="~/Capstone/test_data/tsv.rda")

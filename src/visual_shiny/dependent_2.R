@@ -1,5 +1,6 @@
 source("~/Capstone/src/visual_shiny/dependent_bw.r")
 source("~/Capstone/src/visual_shiny/plot_shiny.r")
+
 filter_bam_path <- function(path) {
   data_dir <- path
   bam_fileinfo <- expand_grid(tibble(treatment=rep(c("control","treatment"),each=4),
@@ -14,6 +15,19 @@ filter_bw_path <- function(path) {
     mutate(bw_path=glue::glue("{data_dir}/bw/CTX_{group}_d.bw"))
   return(bw_fileinfo)
 }
+
+get_gene_name <- function(geneID){
+  matches <- which(elementMetadata(geneRanges_GRCm39)$gene_id == geneID)
+  if (length(matches) == 0) {
+    #  warn(logger(),"There is no match found.")
+    gene_name_match = NA
+  } else {
+    gene_name_match <- geneRanges_GRCm39[matches]$gene_name
+  }
+  # info(logger,paste0("The gene ",geneID," match is ",gene_name_match))
+  return(gene_name_match)
+}
+
 trackset <- function(goi){
   debug(logger,glue("You're now working on extracting tracks for visualization(II)."))
   run_database <- "/mnt/gtklab01/xiaoqing/2025-01-14/filter"

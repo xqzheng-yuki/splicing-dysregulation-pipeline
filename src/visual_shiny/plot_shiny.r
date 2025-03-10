@@ -53,11 +53,11 @@ cytobands <- read_tsv("/mnt/gtklab01/xiaoqing/scaffold/cytoBandIdeo.txt.gz",
 #        tag=condition_tag) |>
 #   mutate(bw_path=glue::glue("{data_dir}/unmapped_CTX_{group}_{tag}.bw"))
 #get bam file path
-bam_fileinfo <- expand_grid(tibble(treatment=rep(c("control","treatment"),each=4),
-       group=c(control_group,treatment_group)),
-       tag=condition_tag) |>
-  mutate(bam_path=glue::glue("{data_dir}/unmappedAligned.sortedByCoord.out_CTX_{group}_{tag}.bam"))
-  "/mnt/gtklab01/xiaoqing/2025-01-14/analysis/bam/${sample%}_${tag}.bam"
+# bam_fileinfo <- expand_grid(tibble(treatment=rep(c("control","treatment"),each=4),
+#        group=c(control_group,treatment_group)),
+#        tag=condition_tag) |>
+#   mutate(bam_path=glue::glue("{data_dir}/unmappedAligned.sortedByCoord.out_CTX_{group}_{tag}.bam"))
+#   "/mnt/gtklab01/xiaoqing/2025-01-14/analysis/bam/${sample%}_${tag}.bam"
 #get bed file path
 # intron_data <- import.bed("/mnt/gtklab01/xiaoqing/decoy/decoy3/intronic.bed")
 # mashmap_data <- import.bed("/mnt/gtklab01/xiaoqing/decoy/decoy3/genome_found_sorted.bed")

@@ -143,5 +143,6 @@ tracklist <- function(goi,run_number){
 
 plotplot <- function(tracklist,goi) {
     gr <- enlarge_gr(goi)
-    plotTracks(tracklist, cex.sampleNames = 0.8, from = start(gr), to = end(gr), main = gr$symbol, fontface.main = 1.5, fontsize = 15)
+    plotTracks(tracklist, cex.sampleNames = 0.8, from = start(gr), to = end(gr), main = gr$symbol, fontface.main = 1.5, fontsize = 15,
+               sizes = c(1, 1, rep(5, length(tracklist) - 3), 1))
 }

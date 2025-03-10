@@ -32,7 +32,7 @@ trackset <- function(goi){
   debug(logger,glue("You're now working on extracting tracks for visualization(II)."))
   run_database <- "/mnt/gtklab01/xiaoqing/2025-01-14/filter"
   run_decoy <- "/mnt/gtklab01/xiaoqing/decoys/2025-01-14"
-  bw_fileinfo <- filter_bw_path(run_database)
+  # bw_fileinfo <- filter_bw_path(run_database)
   bam_fileinfo <- filter_bam_path(run_database)
   # intron_data <- get_intron_bed(run_decoy)
   exon_data <- get_exon_bed(run_decoy)
@@ -64,42 +64,42 @@ trackset <- function(goi){
   debug(logger,glue("Length of show track now is {length(show_track)}"))
   
   ## track:: for bw
-  control_bw_data <- merge_treatment_bw(selection_range = gr,
-                                        treatment_n = "control",
-                                        bwinfo = bw_fileinfo)
-  ko_bw_data <- merge_treatment_bw(selection_range = gr,
-                                   treatment_n = "treatment",
-                                   bwinfo = bw_fileinfo)
-  ylim <- get_ylim(first_set=control_bw_data,second_set=ko_bw_data)
-  control_datatrack <- map(names(control_bw_data),
-                           function(n) {
-                             color <- control_shades[match(n,names(control_bw_data))]
-                             DataTrack(control_bw_data[[n]],
-                                       name = glue::glue("ctrl_{n}"),
-                                       type="polygon",
-                                       ylim = ylim,
-                                       fill.mountain=c("white",color),
-                                       col="black")
-                           })
-  show_track <- add_track(control_datatrack,show_track)
-  ko_datatrack <- map(names(ko_bw_data),
-                      function(n) {
-                        color <- treatment_shades[match(n,names(ko_bw_data))]
-                        DataTrack(ko_bw_data[[n]],
-                                  name = glue::glue("ko_{n}"),
-                                  type="polygon",
-                                  ylim = ylim,
-                                  fill.mountain=c("white",color),
-                                  col="black")
-                      })
-  show_track <- add_track(ko_datatrack,show_track)
+  # control_bw_data <- merge_treatment_bw(selection_range = gr,
+  #                                       treatment_n = "control",
+  #                                       bwinfo = bw_fileinfo)
+  # ko_bw_data <- merge_treatment_bw(selection_range = gr,
+  #                                  treatment_n = "treatment",
+  #                                  bwinfo = bw_fileinfo)
+  # ylim <- get_ylim(first_set=control_bw_data,second_set=ko_bw_data)
+  # control_datatrack <- map(names(control_bw_data),
+  #                          function(n) {
+  #                            color <- control_shades[match(n,names(control_bw_data))]
+  #                            DataTrack(control_bw_data[[n]],
+  #                                      name = glue::glue("ctrl_{n}"),
+  #                                      type="polygon",
+  #                                      ylim = ylim,
+  #                                      fill.mountain=c("white",color),
+  #                                      col="black")
+  #                          })
+  # show_track <- add_track(control_datatrack,show_track)
+  # ko_datatrack <- map(names(ko_bw_data),
+  #                     function(n) {
+  #                       color <- treatment_shades[match(n,names(ko_bw_data))]
+  #                       DataTrack(ko_bw_data[[n]],
+  #                                 name = glue::glue("ko_{n}"),
+  #                                 type="polygon",
+  #                                 ylim = ylim,
+  #                                 fill.mountain=c("white",color),
+  #                                 col="black")
+  #                     })
+  # show_track <- add_track(ko_datatrack,show_track)
 
   ## track:: sashimi
   alignment_track <- pmap(bam_fileinfo, function(treatment,group,tag,bam_path) {
     AlignmentsTrack(bam_path, start = start(gr), end= end(gr),chromosome=as.character(chrom(gr)),
-                    type=c("sashimi"),name=paste0(group))
+                    type=c("coverage", "sashimi"),name=paste0("CTX_",group))
   })
-  # show_track <- add_track(alignment_track,show_track)
+  show_track <- add_track(alignment_track,show_track)
   debug(logger,glue("Added {length(alignment_track)} track(s) sashimi plot for decoy pure"))
   debug(logger,glue("Length of show track now is {length(show_track)}"))
   
@@ -109,3 +109,15 @@ trackset <- function(goi){
   info(logger,glue("Length of show track now is {length(show_track)}"))
   return(show_track)
 }
+
+# dev.new(width = 13, height = 30,noRStudioGD = T,file="Only_in_spliceat.pdf")
+# plotplot(trackset(get_gene_id("Evc2")),get_gene_id("Evc2"))
+# plotplot(trackset(get_gene_id("Rps13")),get_gene_id("Rps13"))
+# plotplot(trackset(get_gene_id("Ccdc187")),get_gene_id("Ccdc187"))
+# # plotplot(trackset(get_gene_id("Gm43366")),get_gene_id("Gm43366"))
+# # Error in names(t2c) <- txs[names(t2c), 2] : 
+# #   attempt to set an attribute on NULL
+# # In addition: Warning message:
+# #   In .local(x, by, ...) : No cds found!
+# # Gm[0-9]* 
+# dev.off()

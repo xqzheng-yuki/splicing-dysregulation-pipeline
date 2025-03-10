@@ -57,21 +57,8 @@ res_db <- res_db |>
   mutate(chr=str_extract(chr,"ENSMUSG\\d+.\\d+"),
          delabel=ifelse(padj < max_padj & abs(log2FoldChange) >= min_lfc,map_chr(chr,get_gene_name),NA))
 
-# plot `p`: decoy data in volcano plot version
-p <- ggplot() +
-  geom_point(
-    data=res_db,
-    mapping = aes(x=log2FoldChange, y=-log10(padj), col=diffexpressed),
-    stat = 'identity',) + 
-  theme_minimal() +
-  geom_label_repel(data = res_db,mapping = aes(x=log2FoldChange, y=-log10(padj),label=delabel)) +
-  theme(legend.position = "none") +
-  scale_color_manual(values=c("blue", "red")) +
-  geom_vline(xintercept=c(-0.6, 0.6), col="red", linetype="dashed") +
-  geom_hline(yintercept=-log10(0.05), col="red", linetype="dashed") +
-  ggtitle("Decoy Result as base")
+## now the SpliCeAT
 
-# import spliceat golden standard for comparison
 list_ctx<-"/mnt/gtklab01/xiaoqing/golden_standard/tdp43_nestin_ctx_e14_gene_mode_lrt_wald_join.csv"
 golden_df <- read.csv(list_ctx, sep=",")
 
@@ -80,6 +67,7 @@ g_res <- tibble(
   pvalue = golden_df$pval_wald,
   padj = golden_df$qval_wald,
   chr = golden_df$target_id) |>
+  rowwise() |>
   mutate(delabel=ifelse(padj < max_padj & abs(log2FoldChange) > min_lfc, map_chr(chr,get_gene_name),NA)) |>
   relocate(chr)
 
@@ -88,14 +76,38 @@ g_res$diffexpressed <- NA
 g_res$diffexpressed[g_res$log2FoldChange > min_lfc & g_res$padj < max_padj] <- "UP"
 g_res$diffexpressed[g_res$log2FoldChange < -min_lfc & g_res$padj < max_padj] <- "DOWN"
 
+
+# overlap two datasets for overlay analysis
+overlap <- inner_join(res_db,g_res,by='chr') |>
+  dplyr::select(chr,FC_decoy=log2FoldChange.x,PV_decoy=padj.x,FC_spl=log2FoldChange.y,PV_spl=padj.y,delabel=delabel.x)
+
+
+
+# plot `p`: decoy data in volcano plot version
+p <- ggplot() +
+  geom_point(
+    data=(res_db |> dplyr::filter(chr %in% overlap$chr)),
+    mapping = aes(x=log2FoldChange, y=-log10(padj), col=diffexpressed),
+    stat = 'identity') + 
+  theme_minimal() +
+  geom_label_repel(data = res_db,mapping = aes(x=log2FoldChange, y=-log10(padj),label=delabel)) +
+  theme(legend.position = "none") +
+  scale_color_manual(values=c("blue", "red")) +
+  geom_vline(xintercept=c(-0.6, 0.6), col="red", linetype="dashed") +
+  geom_hline(yintercept=-log10(0.05), col="red", linetype="dashed") +
+  ggtitle("Decoy Result as base")
+
+
+
+
 # plot `p2`: spliceat-filtered gene list in volcano plot version
 p2 <- ggplot() +
   geom_point(
-    data=g_res,
+    data=dplyr::filter(g_res,chr %in% overlap$chr),
     mapping = aes(x=log2FoldChange, y=-log10(padj), col=diffexpressed),
     stat = 'identity',) + 
   theme_minimal() +
-  geom_label_repel(data = g_res,mapping = aes(x=log2FoldChange, y=-log10(padj),label=delabel)) +
+  geom_label_repel(data=dplyr::filter(g_res,chr %in% overlap$chr),mapping = aes(x=log2FoldChange, y=-log10(padj),label=delabel)) +
   theme(legend.position = "none") +
   scale_color_manual(values=c("blue", "red")) +
   geom_vline(xintercept=c(-0.6, 0.6), col="red", linetype="dashed") +
@@ -109,7 +121,10 @@ overlap <- inner_join(res_db,g_res,by='delabel',na_matches="never") |>
 p3 <- geom_point(data = overlap, mapping = aes(x=FC_decoy,y=-log10(PV_decoy)), shape=11, size=2) # for decoy set
 p4 <- geom_point(data = overlap, mapping = aes(x=FC_spl,y=-log10(PV_spl)), shape=11, size=2) # for spliceat set
 
+
+dev.new(noRStudioGD = T,file="Volcano_plot.pdf")
 # Whole graph of decoy set of differential gene with overlap gene shown as stared point
 p+p3
 # Whole graph of spliceat augmented cryptic gene with overlap gene shown as stared point
 p2+p4
+dev.off()

@@ -1,0 +1,51 @@
+# Define subworkflows
+subworkflow A:
+    workdir: "subworkflows/snakemake_decoygenerate"
+    snakefile: "Snakefile"
+
+subworkflow B_1:
+    workdir: "subworkflows/snakemake_dataprocess"
+    snakefile: "Snakefile"
+
+subworkflow B_2:
+    workdir: "subworkflows/snakemake_dataprocess"
+    snakefile: "Snakefile"
+
+subworkflow C:
+    workdir: "subworkflows/snakemake_analysis"
+    snakefile: "Snakefile"
+
+# Rule to run snakemake_decoygenerate
+rule run_A:
+    output:
+        ""
+    shell:
+        "snakemake -s subworkflows/snakemake_decoygenerate/Snakefile --configfile subworkflows/snakemake_decoygenerate/config.yaml --cores 4"
+
+# Rule to run snakemake_dataprocess first instance
+rule run_B_1:
+    input:
+        "subworkflows/snakemake_decoygenerate/results/output_A.txt"
+    output:
+        "subworkflows/snakemake_dataprocess/results/output_B1.txt"
+    shell:
+        "snakemake -s subworkflows/snakemake_dataprocess/Snakefile --configfile subworkflows/snakemake_dataprocess/config.yaml --cores 4"
+
+# Rule to run snakemake_dataprocess second instance
+rule run_B_2:
+    input:
+        "subworkflows/snakemake_decoygenerate/results/output_A.txt"
+    output:
+        "subworkflows/snakemake_dataprocess/results/output_B2.txt"
+    shell:
+        "snakemake -s subworkflows/snakemake_dataprocess/Snakefile --configfile subworkflows/snakemake_dataprocess/config.yaml --cores 4"
+
+# Rule to run snakemake_analysis
+rule run_C:
+    input:
+        B1="subworkflows/snakemake_dataprocess/results/output_B1.txt",
+        B2="subworkflows/snakemake_dataprocess/results/output_B2.txt"
+    output:
+        "subworkflows/snakemake_analysis/results/output_C.txt"
+    shell:
+        "snakemake -s subworkflows/snakemake_analysis/Snakefile --configfile subworkflows/snakemake_analysis/config.yaml --cores 4"

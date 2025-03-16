@@ -1,0 +1,9 @@
+# Snakefile for result processing
+
+import os
+import re
+from pathlib import Path
+from datetime import date
+# from snakemake.utils import validate
+
+configfile: "config/config.yaml"

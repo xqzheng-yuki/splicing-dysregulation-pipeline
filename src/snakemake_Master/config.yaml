@@ -1,0 +1,25 @@
+output_dir: "/mnt/gtklab01/xiaoqing"
+
+Paths:
+  gtffile: "/mnt/gtklab01/linglab/mmusculus_annotation_files/gencode.vM29.primary_assembly.annotation.gtf"
+  genomefile: "/mnt/gtklab01/linglab/mmusculus_annotation_files/GRCm39.primary_assembly.genome.fa"
+  chromsize: "/mnt/gtklab01/linglab/mmusculus_annotation_files/GRCm39.chrNameLength.txt"
+
+subworkflows:
+  A: "subworkflows/snakemake_decoygenerate/config/config.yaml"
+  B: "subworkflows/snakemake_dataprocess/config/config.yaml"
+  C: "subworkflows/snakemake_analysis/config/config.yaml"
+
+subworkflow_dirs:
+  A_full: "decoys/full"
+  A_mashmap: "decoys/mashmap"
+  B: "analysis"
+
+snakemake_A_outputs:
+  - "gentrom.fa"
+  - "decoy.txt"
+  - "genemap.tsv"
+
+snakemake_B_outputs:
+  samples_tsv: "samples.tsv"
+

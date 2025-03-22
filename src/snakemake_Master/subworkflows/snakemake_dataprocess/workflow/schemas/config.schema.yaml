@@ -1,0 +1,48 @@
+$schema: "http://json-schema.org/draft-06/schema#"
+properties:
+  awk: 
+    type: string
+    description: what to use for awk
+    default: awk
+  bedtools:
+    type: string
+    description: bedtools executable
+    default: bedtools
+  mashmap:
+    type: string
+    description: mashmap executable
+    default: mashmap
+  gffread:
+    type: string
+    description: gffread executable
+    default: gffread
+  
+  output_dir:
+    type: string
+    description: where should the output be placed
+  transcript_type:
+    type: string
+    description: filtering for transcripts, exons and so on
+    default: None
+  Files:
+    gtffile:
+      type: string
+      description: location of GTF file to be used
+    gtfdb:
+      type: string
+      description: location of SQLite database for gtf file
+    genomefile:
+      type: string
+      description: location of FASTA file for genome
+    chromsize:
+      type: string
+      description: location of chromSizes file
+    required:
+      - gtffile
+      - genomefile
+      - chromsize
+
+required:
+  - Files
+  - output_dir
+

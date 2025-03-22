@@ -1,0 +1,281 @@
+# Snakefile for creating decoy file
+# 
+# Usage:
+#     snakemake --config decoy_number=3
+# Configuration:
+# - All parameters should be defined in `config.yaml`.
+# - Input files and directories must be specified in the config file.
+# 
+# Output:
+# - defalut:"/mnt/gtklab01/gtk/decoys/2024-12-20"
+#
+# Notes:
+# - This workflow requires the following tools: bwa, samtools, awk.
+# - Adjust the paths in `config.yaml` according to your setup.
+
+import os
+import re
+import yaml
+from pathlib import Path
+from datetime import date
+from snakemake.utils import validate
+
+output_dir = Path(os.getcwd())
+snake_dir = workflow.snakefile[:workflow.snakefile.find('/workflow')].strip()
+os.chdir(snake_dir)
+# configfile: "config/config.yaml"
+with open("./config/config.yaml") as file:
+    config = yaml.safe_load(file)
+validate(config, "config.schema.yaml")
+include: "rules/common.smk"
+include: "rules/exons.smk"
+include: "rules/introns.smk"
+shell.prefix("set -o pipefail; ")
+
+report: "report/workflow.rst"
+
+awk = config["awk"]
+bedtools = config["bedtools"]
+mashmap = config["mashmap"]
+gtf=config["Paths"]["gtffile"]
+
+db = get_gtf_db("")
+gffread = { 
+    "bin" : config['gffread'],
+    "opts" : "-C" if config['transcript_type'] == "protein_coding" else ""
+}
+
+log: "logs/generatedecoy.log"
+# output_dir = Path(config['output_dir'])
+# print(type(output_dir))
+
+
+os.makedirs(output_dir,exist_ok=True)
+container: "docker://continuumio/miniconda3"
+
+rule all:
+    input:
+        f"{output_dir}/decoys/full/gentrom.fa",
+        f"{output_dir}/decoys/full/decoy.txt",
+        f"{output_dir}/decoys/full/genemap.tsv",
+        f"{output_dir}/decoys/mashmap/gentrom.fa",
+        f"{output_dir}/decoys/mashmap/decoy.txt",
+        f"{output_dir}/decoys/mashmap/genemap.tsv"
+
+rule extract_trxn:
+    params:
+        gffread=gffread,
+    input:
+        fasta=get_genome_fasta,
+        gtf=get_gtf_file
+    output:
+        fasta=f"{output_dir}/transcripts.fa",
+    log:
+        "logs/tx_extract.log",
+    shell:
+        """
+        {params.gffread[bin]} {params.gffread[opts]} -g {input.fasta} {input.gtf} -w {output.fasta} 2> {log}
+        """
+
+rule index_transcriptome:
+    input: 
+        f"{output_dir}/transcripts.fa",
+    output:
+        f"{output_dir}/transcripts.fa.fai",
+    log:
+        "logs/transcripts.log",
+    params:
+        extra="",
+    wrapper:
+        "v5.5.0/bio/samtools/faidx"
+
+rule make_gtf_db:
+    input:
+        get_gtf_file,
+    output:
+        db,
+    log:
+        "logs/gtf_db.log"
+    run:
+        import gffutils
+        gffutils.create_db(input,output,
+                        disable_infer_genes=True,
+                        disable_infer_transcripts=True)
+
+rule extract_genes:
+    input:
+        get_gtf_db,
+    output:
+        f"{output_dir}/genes.bed"
+    conda:
+        "envs/gffutils.yaml"
+    log:
+        "logs/extract_genes.log"
+    script:
+        "scripts/extract_genes.py"
+       
+
+
+rule mask_genome:
+    params:
+        fasta=config["Paths"]["genomefile"],
+        bedtools=config["bedtools"],
+    input:
+        exon=f"{output_dir}/exons.merged.bed"
+    output:
+        temp(f"{output_dir}/reference.masked.genome.fa"),
+    log:
+        "logs/mask_genome.log"
+    shell:
+        """
+        {params.bedtools} maskfasta -fi {params.fasta} -bed {input.exon} -fo {output} 2> {log}
+        """
+
+rule mashmap:
+    params:
+        mashmap=mashmap,
+        threads=config['Params']['threads']
+    input:
+        txp=f"{output_dir}/transcripts.fa",
+        mask_gene=f"{output_dir}/reference.masked.genome.fa"
+    output:
+        f"{output_dir}/mashmap.out",
+    log:
+        "logs/mashmap.log"
+    shell:
+        """
+        echo {params.mashmap}
+        {params.mashmap} -r {input.mask_gene} -q {input.txp} -t {params.threads} --pi 80 -s 500 -o {output}
+        """
+
+rule intergenic_decoy_intervals:
+    params:
+        awk=awk,
+        bedtools=config["bedtools"],
+    input:
+        genome=get_chrom_sizes,
+        mashmap=f"{output_dir}/mashmap.out",
+        intergen=f"{output_dir}/intergen.bed",
+    output:
+        mashmap_bed=temp(f"{output_dir}/mashmap_out_ori.bed"),
+        sorted=f"{output_dir}/mashmap_out.bed",
+        filtered=temp(f"{output_dir}/mashmap_intergenic_ori.bed"),
+        filtered_n_sorted=f"{output_dir}/mashmap_intergenic.bed",
+        merged=f"{output_dir}/mashmap_intergenic_merged.bed",
+    log:
+        "logs/intergenic_decoy_intervals.log",
+    shell:
+        """
+        {params.awk} -v OFS='\t' '{{print $6,$8,$9,$1,".",$5}}' {input.mashmap} > {output.mashmap_bed}
+        {params.bedtools} sort -i {output.mashmap_bed} -g {input.genome} > {output.sorted}
+        {params.bedtools} intersect -a {output.sorted} -b {input.intergen} > {output.filtered}
+        {params.bedtools} sort -i {output.filtered} -g {input.genome} > {output.filtered_n_sorted}
+        {params.bedtools} merge -i {output.filtered_n_sorted} > {output.merged}
+        """
+
+rule gene_map:
+    input:
+        db,
+    output:
+        f"{output_dir}/decoys/full/genemap.tsv",
+    conda:
+        "envs/gffutils.yaml"
+    log:
+        "logs/gene_map.log"
+    script:
+        "scripts/gene_map.py"
+
+rule intergenic_decoys:
+    params:
+        bedtools=config["bedtools"]
+    input:
+        fasta=f"{output_dir}/reference.masked.genome.fa",
+        bed=f"{output_dir}/mashmap_intergenic_merged.bed"
+    output:
+        f"{output_dir}/mashmap_intergenic.fa",
+    log:
+        "logs/intergenic_decoys.log",
+    shell:
+        """
+        {params.bedtools} getfasta -s -fi {input.fasta} -bed {input.bed} -fo {output}
+        """
+
+rule concat_decoy:
+    params:
+        awk=awk
+    input:
+        decoy=f"{output_dir}/mashmap_intergenic.fa",
+        intron=f"{output_dir}/intronic_found.fa"
+    output:
+        decoy=f"{output_dir}/decoy.fa",
+        intron=f"{output_dir}/intron_chr.fa",
+    log:
+        "logs/concat_decoy.log"
+    shell:
+        """
+        {params.awk} '{{a=$0; getline;split(a, b, ":");  r[b[1]] = r[b[1]]""$0}} END {{ for (k in r) {{ print k"\\n"r[k] }} }}' {input.decoy} > {output.decoy}
+        {params.awk} '{{a=$0; getline;split(a, b, ":");  r[b[1]] = r[b[1]]""$0}} END {{ for (k in r) {{ print k"_intronic\\n"r[k] }} }}' {input.intron} > {output.intron}
+        """
+
+rule make_gentrome:
+    input:
+        decoy=f"{output_dir}/decoy.fa",
+        intron=f"{output_dir}/intron_chr.fa",
+        trxn=f"{output_dir}/transcripts.fa"
+    output:
+        f"{output_dir}/decoys/full/gentrom.fa",
+    log:
+        "logs/gentrome.log"
+    shell:
+        """
+        cat {input.trxn} {input.decoy} {input.intron} > {output}
+        """
+ 
+rule pure_mm:
+    params:
+        awk=awk
+    input:
+        decoy=f"{output_dir}/decoy.fa",
+        trxn=f"{output_dir}/transcripts.fa",
+        genemap=f"{output_dir}/decoys/full/genemap.tsv",
+    output:
+        fa=f"{output_dir}/decoys/mashmap/gentrom.fa",
+        idlist=f"{output_dir}/decoys/mashmap/decoy.txt",
+        gmap=f"{output_dir}/decoys/mashmap/genemap.tsv",
+    log:
+        "logs/pure_mm.log"
+    shell:
+        """
+        cat {input.trxn} {input.decoy} > {output.fa}
+        grep -h ">" {input.decoy} | {params.awk} '{{print substr($1,2); }}' > {output.idlist}
+        cp {input.genemap} {output.gmap}
+        """
+
+rule extract_decoy_ids:
+    params:
+        awk=awk
+    input:
+        decoy=f"{output_dir}/decoy.fa",
+        intron=f"{output_dir}/intron_chr.fa"
+    output:
+        f"{output_dir}/decoys/full/decoy.txt"
+    log:
+        "logs/extract_decoy_ids.log"
+    shell:
+        """
+        grep -h ">" {input.decoy} {input.intron} | {params.awk} '{{print substr($1,2); }}' > {output}
+        """
+
+
+rule intergenic:
+    params:
+        genome=config["Paths"]["chromsize"],
+        bedtools=config["bedtools"]
+    input:
+        gene=f"{output_dir}/genes.bed",
+    output:
+        f"{output_dir}/intergen.bed"
+    log:
+        "logs/intergenic.log"
+    shell:
+        "{params.bedtools} complement -i {input.gene} -g {params.genome} > {output}"

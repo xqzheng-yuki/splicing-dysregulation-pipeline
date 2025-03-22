@@ -110,7 +110,7 @@ trackset <- function(goi){
   return(show_track)
 }
 
-# dev.new(width = 13, height = 30,noRStudioGD = T,file="Only_in_spliceat.pdf")
+# dev.new(width = 13, height = 30,noRStudioGD = T,file="~/ressults/Only_in_spliceat.pdf")
 # plotplot(trackset(get_gene_id("Evc2")),get_gene_id("Evc2"))
 # plotplot(trackset(get_gene_id("Rps13")),get_gene_id("Rps13"))
 # plotplot(trackset(get_gene_id("Ccdc187")),get_gene_id("Ccdc187"))

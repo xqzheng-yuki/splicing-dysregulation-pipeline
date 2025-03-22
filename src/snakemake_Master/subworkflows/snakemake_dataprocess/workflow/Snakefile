@@ -1,0 +1,208 @@
+# Snakefile for creating bam and bw file
+# 
+# Usage:
+#     snakemake --config decoy_number=4 run_number=3 date="Dec_02"
+# Configuration:
+# - All parameters should be defined in `config.yaml`.
+# - Input files and directories must be specified in the config file.
+# 
+# Output:
+# - Results will be stored in the directory defined by `output_dir/decoy_number` in config.yaml.
+#
+# Notes:
+# - This workflow requires the following tools: salmon, samtools, star, seqtk, bamCoverage.
+# - Adjust the paths in `config.yaml` according to your setup.
+
+import os
+import re
+import yaml
+from datetime import date
+from snakemake.utils import validate
+from pathlib import Path
+import itertools
+
+
+snake_dir = workflow.snakefile[:workflow.snakefile.find('/workflow')].strip()
+os.chdir(snake_dir)
+
+configfile: "config/config.yaml"
+with open("config/config.yaml") as file:
+    config = yaml.safe_load(file)
+include: "rules/common.smk"
+shell.prefix("set -o pipefail; ")
+decoy_dir = config['decoy_dir']
+read_dir=config['RNA_READS_DIR']
+tags = config['tags']
+star_idx = config['Files']['stargenome']
+output_dir = os.path.join(config['output_dir'])
+os.makedirs(output_dir,exist_ok=True)
+container: "docker://continuumio/miniconda3"
+wildcard_constraints:
+    tag = "m1|m2|d|u"
+
+rule all:
+    input:
+        os.path.join(output_dir,"samples.tsv")
+        #expand(os.path.join(output_dir,"star/result/{sample}/{tag}.bw"),
+        #    sample=samples.index,tag=tags),
+    log:
+        "logs/all.log"
+
+rule unmapped_sequence:
+    params:
+        tag="{tag}",
+        sample="{sample}",
+        unmapped_seq_dir=os.path.join(output_dir,"star/seq")
+    input:
+        name=os.path.join(output_dir,"salmon/{sample}/aux_info/unmapped_{tag}.lst"),
+        r1=os.path.join(config['RNA_READS_DIR'],"{sample}_1.fq.gz"),
+        r2=os.path.join(config['RNA_READS_DIR'],"{sample}_2.fq.gz"),
+    output:
+        unmapped_1=os.path.join(output_dir,"star/seq/{sample}_{tag}_1.fq"),
+        unmapped_2=os.path.join(output_dir,"star/seq/{sample}_{tag}_2.fq"),
+    log:
+        "logs/unmapped_seqs/{sample}_{tag}.log",
+    shell:
+        "mkdir -p {params.unmapped_seq_dir} ; "
+        "echo Processing {params.sample}, type {params.tag}. ; "
+        "seqtk subseq {input.r1} {input.name} > {output.unmapped_1} ;"
+        "seqtk subseq {input.r2} {input.name} > {output.unmapped_2} ;"
+
+rule salmon_index:
+    input:
+        sequences=f"{decoy_dir}/gentrom.fa",
+        decoys=f"{decoy_dir}/decoy.txt",
+    output:
+        directory(f"{decoy_dir}/salmon_index")
+        # multiext(
+        #     f"{decoy_dir}/salmon_index/",
+        #     "complete_ref_lens.bin",
+        #     "ctable.bin",
+        #     "ctg_offsets.bin",
+        #     "duplicate_clusters.tsv",
+        #     "info.json",
+        #     "mphf.bin",
+        #     "pos.bin",
+        #     "pre_indexing.log",
+        #     "rank.bin",
+        #     "refAccumLengths.bin",
+        #     "ref_indexing.log",
+        #     "reflengths.bin",
+        #     "refseq.bin",
+        #     "seq.bin",
+        #     "versionInfo.json",
+        # ),
+    params:
+        extra="",
+    log:
+        "logs/salmon_index.log",
+    wrapper:
+        "v5.5.0/bio/salmon/index"
+
+rule salmon_quant:
+    params:
+        libtype="ISR",
+        extra="--useVBOpt --writeUnmappedNames",
+    input:
+        r1=os.path.join(read_dir, "{sample}_1.fq.gz"),
+        r2=os.path.join(read_dir, "{sample}_2.fq.gz"),
+        gtf=os.path.join(decoy_dir,"genemap.tsv"),
+        index=os.path.join(decoy_dir,"salmon_index")
+    output:
+        quant=os.path.join(output_dir,"salmon/{sample}/quant.sf"),
+        lib=os.path.join(output_dir,"salmon/{sample}/lib_format_counts.json"),
+        bam=os.path.join(output_dir,"salmon/{sample}/aux_info/mapping.bam"),
+        unmap=os.path.join(output_dir,"salmon/{sample}/aux_info/unmapped_names.txt")
+    log:
+        "logs/salmon/{sample}.log",
+    threads: 8,
+    wrapper:
+        "v5.5.0/bio/salmon/quant"
+
+rule unmap_id_separate:
+    params:
+        unmapped_type="{tag}"
+    input:
+        os.path.join(output_dir,"salmon/{sample}/aux_info/unmapped_names.txt"),
+    output:
+        os.path.join(output_dir,"salmon/{sample}/aux_info/unmapped_{tag}.lst"),
+    log:
+        "logs/salmon/{sample}_{tag}.log",
+    shell:
+        "echo Working on {params.unmapped_type}. ; "
+        "grep '{params.unmapped_type}$' {input} | cut -f1 -d' ' > {output}"
+
+
+rule STAR:
+    input:
+        fq1=os.path.join(output_dir,"star/seq/{sample}_{tag}_1.fq"),
+        fq2=os.path.join(output_dir,"star/seq/{sample}_{tag}_2.fq"),
+        idx=star_idx,
+    output:
+        aln=os.path.join(output_dir,"star/result/{sample}/{tag}.bam"),
+        log="logs/star/{sample}/{tag}_log.out",
+        sj=os.path.join(output_dir,"star/result/{sample}/{tag}.SJ.out.tab"),
+        unmapped=[os.path.join(output_dir,"star/result/{sample}/{tag}.1.fastq.gz"),
+        os.path.join(output_dir,"star/result/{sample}/{tag}.2.fastq.gz")],
+    params:
+        extra="",
+    threads: 8,
+    log:
+        "logs/star/{sample}/{tag}.log",
+    wrapper:
+        "v5.5.0/bio/star/align"
+
+rule sort_bam:
+    input:
+        os.path.join(output_dir,"star/result/{sample}/{tag}.bam"),
+    output:
+        sorted=os.path.join(output_dir,"star/result/{sample}/{tag}.sorted.bam"),
+    log:
+        "logs/{sample}/{tag}_sort.log",
+    threads:  8
+    wrapper:
+        "v5.5.0/bio/samtools/sort"
+
+rule index_bam:
+    input:
+        os.path.join(output_dir,"star/result/{sample}/{tag}.sorted.bam"),
+    output:
+       os.path.join(output_dir,"star/result/{sample}/{tag}.sorted.bam.bai"),
+    log:
+        "logs/{sample}/{tag}_index.log",
+    threads: 4  # This value - 1 will be sent to -@
+    wrapper:
+        "v5.5.0/bio/samtools/index"
+
+
+rule bamtobw:
+    params:
+        genome="GRCm39",
+    input:
+        bam=os.path.join(output_dir,"star/result/{sample}/{tag}.sorted.bam"),
+        bai=os.path.join(output_dir,"star/result/{sample}/{tag}.sorted.bam.bai"),
+    output:
+        os.path.join(output_dir,"star/result/{sample}/{tag}.bw"),
+    log:
+        "logs/coverage_default_eff_len_{sample}_{tag}.log",
+    wrapper:
+        "v5.5.0/bio/deeptools/bamcoverage"
+    
+rule samplesheet:
+    """make a sample sheet for Shiny"""
+    params:
+        samples=samples.index,
+        tags=tags,
+    input:
+        bigwig=expand(os.path.join(output_dir,"star/result/{sample}/{tag}.bw"),
+            sample=samples.index,tag=tags),
+        bam=expand(os.path.join(output_dir,"star/result/{sample}/{tag}.sorted.bam"),
+            sample=samples.index,tag=tags)
+    output:
+        os.path.join(output_dir,"samples.tsv")
+    log:
+        "logs/result_samplefile.log",
+    script:
+        "scripts/bigwig-samplesheet.py"
+
+__all__ = ["salmon_index", "salmon_quant", "unmap_id_separate"]

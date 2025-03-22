@@ -1,51 +1,63 @@
-# Define subworkflows
-subworkflow A:
-    workdir: "subworkflows/snakemake_decoygenerate"
-    snakefile: "Snakefile"
+import os
+import re
+from pathlib import Path
+from datetime import date
+from snakemake.utils import validate
+#### for python testing ####
+import yaml
+with open("config.yaml") as file:
+    config = yaml.safe_load(file)
+#### for python testing ####
 
-subworkflow B_1:
-    workdir: "subworkflows/snakemake_dataprocess"
-    snakefile: "Snakefile"
+configfile: "config.yaml"
 
-subworkflow B_2:
-    workdir: "subworkflows/snakemake_dataprocess"
-    snakefile: "Snakefile"
+# Define subworkflows as module
+module A:
+    snakefile: "subworkflows/snakemake_decoygenerate/workflow/Snakefile"
+    config: "config/config.yaml"
+    prefix: "decoys"
+    skip_validation: False
 
-subworkflow C:
-    workdir: "subworkflows/snakemake_analysis"
-    snakefile: "Snakefile"
+module B:
+    snakefile: "subworkflows/snakemake_dataprocess/workflow/Snakefile"
+    config: "config/config.yaml"
+
+# Define output dir
+output_dir = config["output_dir"]
+
+# Define full paths for Snakemake_A outputs
+A_outputs = [
+    str(os.path.join(config["output_dir"], config["subworkflow_dirs"][subdir], file))
+    for subdir in ["A_full", "A_mashmap"]
+    for file in config["snakemake_A_outputs"]
+]
+
+A_folder = [
+    str(os.path.join(config["output_dir"], config["subworkflow_dirs"][subdir]))
+    for subdir in ["A_full", "A_mashmap"]
+]
+
+# Define full paths for Snakemake_B outputs
+B_samples_tsv = str(os.path.join(config["output_dir"], config["subworkflow_dirs"]["B"], config["snakemake_B_outputs"]["samples_tsv"]))
+
+rule all:
+    input:
+        expand("{folder}/{file}",folder=A_folder,file=config["snakemake_A_outputs"]),
+        # B_samples_tsv,
+        # os.path.join(output_dir,"samples.tsv"),
+        rules.data_salmon_index.output
+#         # rules.data_all.input,
+    default_target: True
 
 # Rule to run snakemake_decoygenerate
-rule run_A:
-    output:
-        ""
-    shell:
-        "snakemake -s subworkflows/snakemake_decoygenerate/Snakefile --configfile subworkflows/snakemake_decoygenerate/config.yaml --cores 4"
+use rule * from A as decoys_*
 
-# Rule to run snakemake_dataprocess first instance
-rule run_B_1:
+# Rule to run snakemake_dataprocess
+# use rule * from B as data_*
+# print(A_folder[0])
+use rule salmon_index from B as data_salmon_index with:
     input:
-        "subworkflows/snakemake_decoygenerate/results/output_A.txt"
+        sequences=A_folder[0]+"/gentrom.fa",
+        decoys=A_folder[0]+"/decoy.txt"
     output:
-        "subworkflows/snakemake_dataprocess/results/output_B1.txt"
-    shell:
-        "snakemake -s subworkflows/snakemake_dataprocess/Snakefile --configfile subworkflows/snakemake_dataprocess/config.yaml --cores 4"
-
-# Rule to run snakemake_dataprocess second instance
-rule run_B_2:
-    input:
-        "subworkflows/snakemake_decoygenerate/results/output_A.txt"
-    output:
-        "subworkflows/snakemake_dataprocess/results/output_B2.txt"
-    shell:
-        "snakemake -s subworkflows/snakemake_dataprocess/Snakefile --configfile subworkflows/snakemake_dataprocess/config.yaml --cores 4"
-
-# Rule to run snakemake_analysis
-rule run_C:
-    input:
-        B1="subworkflows/snakemake_dataprocess/results/output_B1.txt",
-        B2="subworkflows/snakemake_dataprocess/results/output_B2.txt"
-    output:
-        "subworkflows/snakemake_analysis/results/output_C.txt"
-    shell:
-        "snakemake -s subworkflows/snakemake_analysis/Snakefile --configfile subworkflows/snakemake_analysis/config.yaml --cores 4"
+        directory(A_folder[0]+"/salmon/transcriptome_index")

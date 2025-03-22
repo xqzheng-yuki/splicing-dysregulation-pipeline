@@ -26,11 +26,11 @@ module B:
 output_dir = config["output_dir"]
 
 # Define full paths for Snakemake_A outputs
-A_outputs = [
-    str(os.path.join(config["output_dir"], config["subworkflow_dirs"][subdir], file))
-    for subdir in ["A_full", "A_mashmap"]
-    for file in config["snakemake_A_outputs"]
-]
+# A_outputs = [
+#     str(os.path.join(config["output_dir"], config["subworkflow_dirs"][subdir], file))
+#     for subdir in ["A_full", "A_mashmap"]
+#     for file in config["snakemake_A_outputs"]
+# ]
 
 A_folder = [
     str(os.path.join(config["output_dir"], config["subworkflow_dirs"][subdir]))
@@ -42,11 +42,14 @@ B_samples_tsv = str(os.path.join(config["output_dir"], config["subworkflow_dirs"
 
 rule all:
     input:
-        expand("{folder}/{file}",folder=A_folder,file=config["snakemake_A_outputs"]),
-        # B_samples_tsv,
-        # os.path.join(output_dir,"samples.tsv"),
-        rules.data_salmon_index.output
-#         # rules.data_all.input,
+        # expand("{folder}/{file}",folder=A_folder,file=config["snakemake_A_outputs"]),
+        A_folder[0]+"/salmon_index",
+        A_folder[1]+"/salmon_index",
+        quant=os.path.join(output_dir,"salmon/CTX_154/quant.sf"),
+        lib=os.path.join(output_dir,"salmon/CTX_154/lib_format_counts.json"),
+        bam=os.path.join(output_dir,"salmon/CTX_154/aux_info/mapping.bam"),
+        unmap=os.path.join(output_dir,"salmon/CTX_154/aux_info/unmapped_names.txt")
+        # os.path.join(output_dir,"samples.tsv")
     default_target: True
 
 # Rule to run snakemake_decoygenerate
@@ -55,9 +58,28 @@ use rule * from A as decoys_*
 # Rule to run snakemake_dataprocess
 # use rule * from B as data_*
 # print(A_folder[0])
-use rule salmon_index from B as data_salmon_index with:
+use rule salmon_index from B as data_full_index with:
     input:
         sequences=A_folder[0]+"/gentrom.fa",
         decoys=A_folder[0]+"/decoy.txt"
     output:
-        directory(A_folder[0]+"/salmon/transcriptome_index")
+        directory(A_folder[0]+"/salmon_index")
+
+use rule salmon_quant from B as data_full_quant with:
+    input:
+        # r1=os.path.join(read_dir, "{sample}_1.fq.gz"),
+        # r2=os.path.join(read_dir, "{sample}_2.fq.gz"),
+        gtf=A_folder[0]+"/genemap.tsv",
+        index=A_folder[0]+"/salmon_index"
+    output:
+        quant=os.path.join(output_dir,"salmon/{sample}/quant.sf"),
+        lib=os.path.join(output_dir,"salmon/{sample}/lib_format_counts.json"),
+        bam=os.path.join(output_dir,"salmon/{sample}/aux_info/mapping.bam"),
+        unmap=os.path.join(output_dir,"salmon/{sample}/aux_info/unmapped_names.txt")
+
+use rule salmon_index from B as data_mashmap_index with:
+    input:
+        sequences=A_folder[1]+"/gentrom.fa",
+        decoys=A_folder[1]+"/decoy.txt"
+    output:
+        directory(A_folder[1]+"/salmon_index")

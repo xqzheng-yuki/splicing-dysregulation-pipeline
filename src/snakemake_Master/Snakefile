@@ -1,8 +1,10 @@
 import os
 import re
+import pandas as pd
 from pathlib import Path
 from datetime import date
 from snakemake.utils import validate
+
 #### for python testing ####
 import yaml
 with open("config.yaml") as file:
@@ -10,6 +12,20 @@ with open("config.yaml") as file:
 #### for python testing ####
 
 configfile: "config.yaml"
+
+samples = pd.read_csv(config["samples"], sep="\t", dtype=str, comment="#").set_index(
+    "sample", drop=False)
+samples.index.names = ["sample_id"]
+
+def drop_unique_cols(df):
+    singular_cols = df.nunique().loc[(df.nunique().values <= 1)].index
+    return df.drop(singular_cols, axis=1)
+
+samples = drop_unique_cols(samples)
+ 
+wildcard_constraints:
+    sample="|".join(samples.index),
+    tag = "m1|m2|d|u"
 
 # Define subworkflows as module
 module A:
@@ -24,31 +40,31 @@ module B:
 
 # Define output dir
 output_dir = config["output_dir"]
+tags = config['tags']
 
 # Define full paths for Snakemake_A outputs
 # A_outputs = [
-#     str(os.path.join(config["output_dir"], config["subworkflow_dirs"][subdir], file))
+#     str(os.path.join(config["output_dir"], config["dirs_tag"], file))
 #     for subdir in ["A_full", "A_mashmap"]
 #     for file in config["snakemake_A_outputs"]
 # ]
 
-A_folder = [
-    str(os.path.join(config["output_dir"], config["subworkflow_dirs"][subdir]))
-    for subdir in ["A_full", "A_mashmap"]
-]
+A_folder = [str(os.path.join(config["output_dir"], "decoys",config["dirs_tag"][subdir]))
+    for subdir in ["full", "mashmap"]]
 
 # Define full paths for Snakemake_B outputs
-B_samples_tsv = str(os.path.join(config["output_dir"], config["subworkflow_dirs"]["B"], config["snakemake_B_outputs"]["samples_tsv"]))
+B_samples_tsv = str(os.path.join(config["output_dir"], config["dirs_tag"]["addition"], config["snakemake_B_outputs"]["samples_tsv"]))
 
 rule all:
     input:
         # expand("{folder}/{file}",folder=A_folder,file=config["snakemake_A_outputs"]),
-        A_folder[0]+"/salmon_index",
-        A_folder[1]+"/salmon_index",
-        quant=os.path.join(output_dir,"salmon/CTX_154/quant.sf"),
-        lib=os.path.join(output_dir,"salmon/CTX_154/lib_format_counts.json"),
-        bam=os.path.join(output_dir,"salmon/CTX_154/aux_info/mapping.bam"),
-        unmap=os.path.join(output_dir,"salmon/CTX_154/aux_info/unmapped_names.txt")
+        # A_folder[0]+"/salmon_index",
+        # A_folder[1]+"/salmon_index",
+        # quant=expand(os.path.join(output_dir,"salmon/{sample}/{dirs}/quant.sf"),sample=samples.index,dirs=["full","mashmap"]),
+        # lib=expand(os.path.join(output_dir,"salmon/{sample}/{dirs}/lib_format_counts.json"),sample=samples.index,dirs=["full","mashmap"]),
+        # bam=expand(os.path.join(output_dir,"salmon/{sample}/{dirs}/aux_info/mapping.bam"),sample=samples.index,dirs=["full","mashmap"]),
+        # unmap=expand(os.path.join(output_dir,"salmon/{sample}/{dirs}/aux_info/unmapped_names.txt"),sample=samples.index,dirs=["full","mashmap"]),
+        expand(os.path.join(output_dir,"salmon/{sample}/{dirs}/aux_info/unmapped_{tag}.lst"),sample=samples.index,dirs=["full","mashmap"],tag=tags),
         # os.path.join(output_dir,"samples.tsv")
     default_target: True
 
@@ -56,8 +72,6 @@ rule all:
 use rule * from A as decoys_*
 
 # Rule to run snakemake_dataprocess
-# use rule * from B as data_*
-# print(A_folder[0])
 use rule salmon_index from B as data_full_index with:
     input:
         sequences=A_folder[0]+"/gentrom.fa",
@@ -72,10 +86,16 @@ use rule salmon_quant from B as data_full_quant with:
         gtf=A_folder[0]+"/genemap.tsv",
         index=A_folder[0]+"/salmon_index"
     output:
-        quant=os.path.join(output_dir,"salmon/{sample}/quant.sf"),
-        lib=os.path.join(output_dir,"salmon/{sample}/lib_format_counts.json"),
-        bam=os.path.join(output_dir,"salmon/{sample}/aux_info/mapping.bam"),
-        unmap=os.path.join(output_dir,"salmon/{sample}/aux_info/unmapped_names.txt")
+        quant=os.path.join(output_dir,"salmon/{sample}/full/quant.sf"),
+        lib=os.path.join(output_dir,"salmon/{sample}/full/lib_format_counts.json"),
+        bam=os.path.join(output_dir,"salmon/{sample}/full/aux_info/mapping.bam"),
+        unmap=os.path.join(output_dir,"salmon/{sample}/full/aux_info/unmapped_names.txt")
+
+use rule unmap_id_separate from B as data_full_separate with:
+    input:
+        os.path.join(output_dir,"salmon/{sample}/full/aux_info/unmapped_names.txt"),
+    output:
+        os.path.join(output_dir,"salmon/{sample}/full/aux_info/unmapped_{tag}.lst"),
 
 use rule salmon_index from B as data_mashmap_index with:
     input:
@@ -83,3 +103,19 @@ use rule salmon_index from B as data_mashmap_index with:
         decoys=A_folder[1]+"/decoy.txt"
     output:
         directory(A_folder[1]+"/salmon_index")
+
+use rule salmon_quant from B as data_mashmap_quant with:
+    input:
+        gtf=A_folder[0]+"/genemap.tsv",
+        index=A_folder[0]+"/salmon_index"
+    output:
+        quant=os.path.join(output_dir,"salmon/{sample}/mashmap/quant.sf"),
+        lib=os.path.join(output_dir,"salmon/{sample}/mashmap/lib_format_counts.json"),
+        bam=os.path.join(output_dir,"salmon/{sample}/mashmap/aux_info/mapping.bam"),
+        unmap=os.path.join(output_dir,"salmon/{sample}/mashmap/aux_info/unmapped_names.txt")
+
+use rule unmap_id_separate from B as data_mashmap_separate with:
+    input:
+        os.path.join(output_dir,"salmon/{sample}/mashmap/aux_info/unmapped_names.txt"),
+    output:
+        os.path.join(output_dir,"salmon/{sample}/mashmap/aux_info/unmapped_{tag}.lst"),

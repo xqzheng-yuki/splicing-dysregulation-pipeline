@@ -5,7 +5,7 @@ Files:
   stargenome: "/mnt/gtklab01/linglab/mmusculus_annotation_files/STAR_v2.7.9a_index_mmusculus_gencode.vM29"
 
 src_dir: "/mnt/cbis/home/gtk/src/xiaoqing-capstone/src/scripts"
-decoy_dir: "/mnt/gtklab01/xiaoqing/decoys"
+decoy_dir: "/mnt/gtklab01/gtk/decoys/2024-12-20"
 output_dir: "/mnt/gtklab01/xiaoqing"
 RNA_READS_DIR: "/mnt/gtklab01/linglab/tdp43/geo"
 

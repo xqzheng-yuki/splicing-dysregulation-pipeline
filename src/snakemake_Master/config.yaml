@@ -1,5 +1,8 @@
 output_dir: "/mnt/gtklab01/xiaoqing"
 
+samples: ./subworkflows/snakemake_dataprocess/config/samples.tsv
+tags: ["d", "m1", "m2", "u"]
+
 Paths:
   gtffile: "/mnt/gtklab01/linglab/mmusculus_annotation_files/gencode.vM29.primary_assembly.annotation.gtf"
   genomefile: "/mnt/gtklab01/linglab/mmusculus_annotation_files/GRCm39.primary_assembly.genome.fa"
@@ -10,10 +13,10 @@ subworkflows:
   B: "subworkflows/snakemake_dataprocess/config/config.yaml"
   C: "subworkflows/snakemake_analysis/config/config.yaml"
 
-subworkflow_dirs:
-  A_full: "decoys/full"
-  A_mashmap: "decoys/mashmap"
-  B: "analysis"
+dirs_tag:
+  full: "full"
+  mashmap: "mashmap"
+  addition: "analysis"
 
 snakemake_A_outputs:
   - "gentrom.fa"

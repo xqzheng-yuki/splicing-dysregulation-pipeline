@@ -74,24 +74,6 @@ rule salmon_index:
         decoys=f"{decoy_dir}/decoy.txt",
     output:
         directory(f"{decoy_dir}/salmon_index")
-        # multiext(
-        #     f"{decoy_dir}/salmon_index/",
-        #     "complete_ref_lens.bin",
-        #     "ctable.bin",
-        #     "ctg_offsets.bin",
-        #     "duplicate_clusters.tsv",
-        #     "info.json",
-        #     "mphf.bin",
-        #     "pos.bin",
-        #     "pre_indexing.log",
-        #     "rank.bin",
-        #     "refAccumLengths.bin",
-        #     "ref_indexing.log",
-        #     "reflengths.bin",
-        #     "refseq.bin",
-        #     "seq.bin",
-        #     "versionInfo.json",
-        # ),
     params:
         extra="",
     log:
@@ -204,5 +186,3 @@ rule samplesheet:
         "logs/result_samplefile.log",
     script:
         "scripts/bigwig-samplesheet.py"
-
-__all__ = ["salmon_index", "salmon_quant", "unmap_id_separate"]

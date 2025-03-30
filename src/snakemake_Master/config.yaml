@@ -2,6 +2,7 @@ output_dir: "/mnt/gtklab01/xiaoqing"
 
 samples: ./subworkflows/snakemake_dataprocess/config/samples.tsv
 tags: ["d", "m1", "m2", "u"]
+RNA_READS_DIR: "/mnt/gtklab01/linglab/tdp43/geo"
 
 Paths:
   gtffile: "/mnt/gtklab01/linglab/mmusculus_annotation_files/gencode.vM29.primary_assembly.annotation.gtf"

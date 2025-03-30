@@ -2,8 +2,111 @@
 
 import os
 import re
+import yaml
+import pandas as pd
 from pathlib import Path
 from datetime import date
-# from snakemake.utils import validate
+from snakemake.utils import validate
 
+snake_dir = workflow.snakefile[:workflow.snakefile.find('/workflow')].strip()
+os.chdir(snake_dir)
 configfile: "config/config.yaml"
+
+# force config read
+with open("config/config.yaml") as file:
+    config = yaml.safe_load(file)
+
+# validate(config, schema="../schemas/config.schema.yaml")
+samples = pd.read_csv(config["samples"], sep="\t", dtype=str, comment="#").set_index(
+    "sample", drop=False)
+samples.index.names = ["sample_id"]
+
+def drop_unique_cols(df):
+    singular_cols = df.nunique().loc[(df.nunique().values <= 1)].index
+    return df.drop(singular_cols, axis=1)
+
+samples = drop_unique_cols(samples)
+ 
+wildcard_constraints:
+    sample="|".join(samples.index),
+    tag = "m1|m2|d|u"
+
+tags = config['tags']
+output_dir = os.path.join(config['output_dir'],config["dirs_tag"]["addition"])
+
+rule all:
+    input:
+        expand(os.path.join(output_dir,"count_{sample}_{tag}.tsv"),sample=samples.index,tag=tags),
+        expand(os.path.join(output_dir,"bam/{sample}_{tag}.bam"),sample=samples.index,tag=tags)
+
+rule remove_mashmap:
+    params:
+        tag="{tag}",
+        sample="{sample}",
+        dir=output_dir
+    input:
+        full = os.path.join(config['output_dir'],"salmon/{sample}/full/aux_info/unmapped_{tag}.lst"),
+        mashmap = os.path.join(config['output_dir'],"salmon/{sample}/mashmap/aux_info/unmapped_{tag}.lst"),
+    output:
+        os.path.join(output_dir,"{sample}_{tag}.lst"),
+    shell:
+        "mkdir -p {params.dir} ; "
+        "echo Processing {params.sample} ; "
+        "comm -23 <(sort {input.full}) <(sort {input.mashmap}) > {output} ;"
+
+rule bam_sort:
+    input:
+        os.path.join(config['output_dir'],"salmon/{sample}/full/aux_info/mapping.bam"),
+    output:
+        temp(os.path.join(config['output_dir'],"salmon/{sample}/full/aux_info/mapping.sorted.bam")),
+    log:
+        "logs/{sample}.log",
+    params:
+        extra="-m 4G",
+    threads: 8
+    wrapper:
+        "v5.9.0/bio/samtools/sort"
+
+rule filter_bam:
+    input:
+        os.path.join(config['output_dir'],"salmon/{sample}/full/aux_info/mapping.sorted.bam"),
+    output:
+        bam = os.path.join(config['output_dir'],"salmon/{sample}/full/aux_info/primary_mapping.bam"),
+        idx = os.path.join(config['output_dir'],"salmon/{sample}/full/aux_info/primary_mapping.bai"),
+    threads: 2
+    params:
+        sample = "{sample}",
+        extra = "-F 256 -b"
+    wrapper:
+        "v5.9.0/bio/samtools/view"
+    
+rule decoy_bam:
+    input:
+        bam = os.path.join(config['output_dir'],"salmon/{sample}/full/aux_info/primary_mapping.bam"),
+        idlist = os.path.join(output_dir,"{sample}_{tag}.lst"),
+    output:
+        bam = os.path.join(output_dir,"bam/{sample}_{tag}.bam"),
+        idx = os.path.join(output_dir,"bam/{sample}_{tag}.bai"),
+    threads: 2
+    params:
+        sample = "{sample}",
+        tag="{tag}",
+    shell:
+        "samtools view --write-index -o {output.bam}##idx##{output.idx} --output-fmt BAM {input.bam} -N {input.idlist}"
+
+
+rule get_count:
+    params:
+        tag="{tag}",
+        sample="{sample}",
+    input:
+        bam = os.path.join(output_dir,"bam/{sample}_{tag}.bam"),
+        # idlist = os.path.join(output_dir,"{sample}_{tag}.lst"),
+    output:
+        whole_list = temp(os.path.join(output_dir,"whole_{sample}_{tag}.tsv")),
+        tsv_name = os.path.join(output_dir,"count_{sample}_{tag}.tsv"),
+        multi_name = os.path.join(output_dir,"share_{sample}_{tag}.tsv"),
+    shell:
+        "samtools view {input.bam} | cut -f3 | uniq -c | awk -v OFS='\t' '{{print $2,$1}}' > {output.whole_list} ; "
+        "grep ',' {output.whole_list} > {output.multi_name} ; "
+        "grep -v ',' {output.whole_list} > {output.tsv_name} ;"

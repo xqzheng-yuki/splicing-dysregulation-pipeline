@@ -106,7 +106,7 @@ rule extract_genes:
     input:
         get_gtf_db,
     output:
-        f"{output_dir}/genes.bed"
+        temp(f"{output_dir}/genes.bed")
     conda:
         "envs/gffutils.yaml"
     log:

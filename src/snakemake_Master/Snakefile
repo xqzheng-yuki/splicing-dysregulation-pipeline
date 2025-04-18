@@ -46,6 +46,7 @@ module C:
 output_dir = config["output_dir"]
 read_dir = config["RNA_READS_DIR"]
 tags = config['tags']
+star_idx = config['Paths']['stargenome']
 
 A_folder = [str(os.path.join(config["output_dir"], "decoys",config["dirs_tag"][subdir]))
     for subdir in ["full", "mashmap"]]
@@ -67,7 +68,8 @@ rule all:
         # expand(os.path.join(output_dir,"salmon/{sample}/{dirs}/aux_info/unmapped_{tag}.lst"),sample=samples.index,dirs=["full","mashmap"],tag=tags),
         # expand(os.path.join(config['output_dir'],"salmon/{sample}/full/aux_info/primary_mapping.bam"),sample=samples.index),
         expand(os.path.join(output_dir,config["dirs_tag"]["addition"],"count_{sample}_{tag}.tsv"),sample=samples.index,tag=out_tag),
-        expand(os.path.join(output_dir,config["dirs_tag"]["addition"],"bw/{sample}_{tag}.bw"),sample=samples.index,tag=out_tag),
+        # expand(os.path.join(output_dir,config["dirs_tag"]["addition"],"bw/{sample}_{tag}.bw"),sample=samples.index,tag=out_tag),
+        expand(os.path.join(output_dir,"star/result/{sample}/{tag}.sorted.bam.bai"),sample=samples.index,tag=out_tag),
     default_target: True
 
 # Rule to run snakemake_decoygenerate
@@ -124,12 +126,27 @@ use rule unmap_id_separate from B as data_mashmap_separate with:
     output:
         os.path.join(output_dir,"salmon/{sample}/mashmap/aux_info/unmapped_{tag}.lst")
 
+use rule unmapped_sequence from B as analyze_get_sequence with:
+    input:
+        name=os.path.join(output_dir,"salmon/{sample}/mashmap/aux_info/unmapped_{tag}.lst"),
+        r1=os.path.join(read_dir,"{sample}_1.fq.gz"),
+        r2=os.path.join(read_dir,"{sample}_2.fq.gz"),
+    output:
+        unmapped_1=os.path.join(output_dir,"star/seq/{sample}_{tag}_1.fq"),
+        unmapped_2=os.path.join(output_dir,"star/seq/{sample}_{tag}_2.fq"),
+
+use rule STAR from B as analyze_STAR
+
+use rule sort_bam from B as analyze_STAR_sort
+
+use rule index_bam from B as analyze_STAR_index
+
 use rule * from C as analyze_*
 
-use rule bamtobw from B as analyze_bw with:
-    input:
-        bam = os.path.join(output_dir,config["dirs_tag"]["addition"],"bam/{sample}_{tag}.bam"),
-        bai = os.path.join(output_dir,config["dirs_tag"]["addition"],"bam/{sample}_{tag}.bai"),
-    output:
-        os.path.join(output_dir,config["dirs_tag"]["addition"],"bw/{sample}_{tag}.bw")
+# use rule bamtobw from B as analyze_bw with:
+#     input:
+#         bam = os.path.join(output_dir,config["dirs_tag"]["addition"],"bam/{sample}_{tag}.bam"),
+#         bai = os.path.join(output_dir,config["dirs_tag"]["addition"],"bam/{sample}_{tag}.bai"),
+#     output:
+#         os.path.join(output_dir,config["dirs_tag"]["addition"],"bw/{sample}_{tag}.bw")
 

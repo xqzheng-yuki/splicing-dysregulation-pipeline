@@ -8,6 +8,7 @@ Paths:
   gtffile: "/mnt/gtklab01/linglab/mmusculus_annotation_files/gencode.vM29.primary_assembly.annotation.gtf"
   genomefile: "/mnt/gtklab01/linglab/mmusculus_annotation_files/GRCm39.primary_assembly.genome.fa"
   chromsize: "/mnt/gtklab01/linglab/mmusculus_annotation_files/GRCm39.chrNameLength.txt"
+  stargenome: "/mnt/gtklab01/linglab/mmusculus_annotation_files/STAR_v2.7.9a_index_mmusculus_gencode.vM29"
 
 subworkflows:
   A: "subworkflows/snakemake_decoygenerate/config/config.yaml"

@@ -22,18 +22,18 @@ wildcard_constraints:
 
 
 def get_gtf_file(wildcards):
-    return config["Files"]["gtffile"]
+    return config["Paths"]["gtffile"]
 
 def get_gtf_db(wildcards):
-    if "gtfdb" not in config["Files"]:
-        config["Files"]["gtfdb"] = f"{config['Files']['gtffile']}.db"
-    return config["Files"]["gtfdb"]
+    if "gtfdb" not in config["Paths"]:
+        config["Paths"]["gtfdb"] = f"{config['Paths']['gtffile']}.db"
+    return config["Paths"]["gtfdb"]
 
 def get_genome_fasta(wildcards):
-     return config['Files']['genomefile']
+     return config['Paths']['genomefile']
 
 def get_chrom_sizes(wildcards):
-    return config['Files']['chromsize']
+    return config['Paths']['chromsize']
 
 
 get_gtf_db("")

@@ -33,7 +33,7 @@ shell.prefix("set -o pipefail; ")
 decoy_dir = config['decoy_dir']
 read_dir=config['RNA_READS_DIR']
 tags = config['tags']
-star_idx = config['Files']['stargenome']
+star_idx = config['Paths']['stargenome']
 output_dir = os.path.join(config['output_dir'])
 os.makedirs(output_dir,exist_ok=True)
 container: "docker://continuumio/miniconda3"

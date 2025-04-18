@@ -1,4 +1,4 @@
-Files:
+Paths:
   gtffile: "/mnt/gtklab01/linglab/mmusculus_annotation_files/gencode.vM29.primary_assembly.annotation.gtf"
   genomefile: "/mnt/gtklab01/linglab/mmusculus_annotation_files/GRCm39.primary_assembly.genome.fa"
   chromsize: "/mnt/gtklab01/linglab/mmusculus_annotation_files/GRCm39.chrNameLength.txt"

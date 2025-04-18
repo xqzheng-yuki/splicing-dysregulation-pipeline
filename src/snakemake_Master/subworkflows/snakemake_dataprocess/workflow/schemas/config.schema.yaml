@@ -24,7 +24,7 @@ properties:
     type: string
     description: filtering for transcripts, exons and so on
     default: None
-  Files:
+  Paths:
     gtffile:
       type: string
       description: location of GTF file to be used
@@ -43,6 +43,6 @@ properties:
       - chromsize
 
 required:
-  - Files
+  - Paths
   - output_dir
 

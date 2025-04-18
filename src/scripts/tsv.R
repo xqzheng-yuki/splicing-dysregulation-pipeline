@@ -5,9 +5,11 @@ library(ggrepel)
 library(ggplot2)
 
 source("/mnt/cbis/home/e1124735/Capstone/src/visual_shiny/dependent_2.R")
-data_dir <- "/mnt/gtklab01/xiaoqing/2025-01-14-list_filter/analysis/count"
+# data_dir <- "/mnt/gtklab01/xiaoqing/2025-01-14-list_filter/analysis/count"
+data_dir <- "/mnt/gtklab01/xiaoqing/analysis/"
 
-tags=c("d","m1","m2")
+# tags=c("d","m1","m2")
+tags=c("d")
 
 # filter parameters
 max_padj <- 0.05
@@ -19,7 +21,9 @@ tsv_fileinfo <- expand_grid(tibble(treatment=rep(c("control","treatment"),each=4
                             tag=tags) |>
   mutate(tsv_path=glue::glue("{data_dir}/count_CTX_{group}_{tag}.tsv"))
 
-intron_d_counts <- purrr::map(tsv_fileinfo |> dplyr::filter(tag=='d') |> pull(tsv_path),read_tsv,col_names=c('chr','count')) |>
+intron_d_counts <- purrr::map(tsv_fileinfo |> 
+  # dplyr::filter(tag=='d') |> 
+  pull(tsv_path),read_tsv,col_names=c('chr','count')) |>
   purrr::reduce(inner_join,by='chr') |> 
   dplyr::filter(str_starts(chr,"ENSMUSG"))
 
@@ -96,8 +100,6 @@ p <- ggplot() +
   geom_vline(xintercept=c(-0.6, 0.6), col="red", linetype="dashed") +
   geom_hline(yintercept=-log10(0.05), col="red", linetype="dashed") +
   ggtitle("Decoy Result as base")
-
-
 
 
 # plot `p2`: spliceat-filtered gene list in volcano plot version

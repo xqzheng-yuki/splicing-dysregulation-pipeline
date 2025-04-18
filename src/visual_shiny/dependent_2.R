@@ -1,6 +1,6 @@
 source("~/Capstone/src/visual_shiny/dependent_bw.r")
 source("~/Capstone/src/visual_shiny/plot_shiny.r")
-
+source("~/Capstone/src/visual_shiny/major_plot_function.r")
 filter_bam_path <- function(path) {
   data_dir <- path
   bam_fileinfo <- expand_grid(tibble(treatment=rep(c("control","treatment"),each=4),
@@ -31,7 +31,7 @@ get_gene_name <- function(geneID){
 trackset <- function(goi){
   debug(logger,glue("You're now working on extracting tracks for visualization(II)."))
   run_database <- "/mnt/gtklab01/xiaoqing/2025-01-14/filter"
-  run_decoy <- "/mnt/gtklab01/xiaoqing/decoys/2025-01-14"
+  run_decoy <- "/mnt/gtklab01/xiaoqing"
   # bw_fileinfo <- filter_bw_path(run_database)
   bam_fileinfo <- filter_bam_path(run_database)
   # intron_data <- get_intron_bed(run_decoy)
@@ -110,14 +110,14 @@ trackset <- function(goi){
   return(show_track)
 }
 
-# dev.new(width = 13, height = 30,noRStudioGD = T,file="~/ressults/Only_in_spliceat.pdf")
-# plotplot(trackset(get_gene_id("Evc2")),get_gene_id("Evc2"))
-# plotplot(trackset(get_gene_id("Rps13")),get_gene_id("Rps13"))
-# plotplot(trackset(get_gene_id("Ccdc187")),get_gene_id("Ccdc187"))
-# # plotplot(trackset(get_gene_id("Gm43366")),get_gene_id("Gm43366"))
-# # Error in names(t2c) <- txs[names(t2c), 2] : 
-# #   attempt to set an attribute on NULL
-# # In addition: Warning message:
-# #   In .local(x, by, ...) : No cds found!
-# # Gm[0-9]* 
-# dev.off()
+dev.new(width = 13, height = 30,noRStudioGD = T,file="/mnt/gtklab01/xiaoqing/analysis/graph/Only_in_spliceat.pdf")
+plotplot(trackset(get_gene_id("Evc2")),get_gene_id("Evc2"))
+plotplot(trackset(get_gene_id("Rps13")),get_gene_id("Rps13"))
+plotplot(trackset(get_gene_id("Ccdc187")),get_gene_id("Ccdc187"))
+dev.off()
+
+dev.new(width = 13, height = 30,noRStudioGD = T,file="/mnt/gtklab01/xiaoqing/analysis/graph/Only_in_decap.pdf")
+plotplot(trackset(get_gene_id("Ptp4a2")),get_gene_id("Ptp4a2"))
+plotplot(trackset(get_gene_id("Mfsd13a")),get_gene_id("Mfsd13a"))
+plotplot(trackset(get_gene_id("Heatr5b")),get_gene_id("Heatr5b"))
+dev.off()

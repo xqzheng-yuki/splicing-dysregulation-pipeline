@@ -47,13 +47,6 @@ output_dir = config["output_dir"]
 read_dir = config["RNA_READS_DIR"]
 tags = config['tags']
 
-# Define full paths for Snakemake_A outputs
-# A_outputs = [
-#     str(os.path.join(config["output_dir"], config["dirs_tag"], file))
-#     for subdir in ["A_full", "A_mashmap"]
-#     for file in config["snakemake_A_outputs"]
-# ]
-
 A_folder = [str(os.path.join(config["output_dir"], "decoys",config["dirs_tag"][subdir]))
     for subdir in ["full", "mashmap"]]
 
@@ -138,5 +131,5 @@ use rule bamtobw from B as analyze_bw with:
         bam = os.path.join(output_dir,config["dirs_tag"]["addition"],"bam/{sample}_{tag}.bam"),
         bai = os.path.join(output_dir,config["dirs_tag"]["addition"],"bam/{sample}_{tag}.bai"),
     output:
-        os.path.join(output_dir,config["dirs_tag"]["addition"],"bw/{sample}_{tag}.bw")        
+        os.path.join(output_dir,config["dirs_tag"]["addition"],"bw/{sample}_{tag}.bw")
 

@@ -140,6 +140,8 @@ rule mashmap:
         mask_gene=f"{output_dir}/reference.masked.genome.fa"
     output:
         f"{output_dir}/mashmap.out",
+    conda:
+        "envs/mashmap.yaml"
     log:
         "logs/mashmap.log"
     shell:

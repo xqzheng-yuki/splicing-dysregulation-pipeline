@@ -1,6 +1,7 @@
 import os
 import json
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import math
 import seaborn as sns
@@ -38,7 +39,7 @@ for sample in samples:
         )
 
         # Correlation
-        corr, _ = pearsonr(df_merged["TPM_filtered"], df_merged["TPM_decap"])
+        corr, _ = pearsonr(np.log2(df_merged["TPM_filtered"] + 1e-6), np.log2(df_merged["TPM_decap"] + 1e-6))
 
         # Save plot
         plt.figure(figsize=(6,6))

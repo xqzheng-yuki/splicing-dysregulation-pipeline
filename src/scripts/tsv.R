@@ -47,6 +47,13 @@ significant_genes <- res_db %>%
   slice_head(n = 20)
 significant_genes$chr <- sub("_intronic","",significant_genes$chr)
 
+all_significant <- res_db %>%
+  dplyr::filter(!is.na(log2FoldChange) & !is.na(padj) & padj > 0) %>%
+  dplyr::filter(!is.na(padj) & padj < max_padj & (log2FoldChange > min_lfc | log2FoldChange < -min_lfc) ) %>%
+  arrange(padj)
+all_significant$chr <- sub("_intronic","",all_significant$chr)
+all_significant$chr <- gsub("\\..*","",all_significant$chr)
+
 ## ref: https://biocorecrg.github.io/CRG_RIntroduction/volcano-plots.html
 
 # add differentiated expressed and label col
@@ -81,7 +88,7 @@ g_res$diffexpressed[g_res$log2FoldChange > min_lfc & g_res$padj < max_padj] <- "
 g_res$diffexpressed[g_res$log2FoldChange < -min_lfc & g_res$padj < max_padj] <- "DOWN"
 
 
-# overlap two datasets for overlay analysis
+# overlap two datasets for overlay analysis, make sure same gene list could be "analyze"
 overlap <- inner_join(res_db,g_res,by='chr') |>
   dplyr::select(chr,FC_decoy=log2FoldChange.x,PV_decoy=padj.x,FC_spl=log2FoldChange.y,PV_spl=padj.y,delabel=delabel.x)
 

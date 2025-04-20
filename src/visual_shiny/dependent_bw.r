@@ -32,7 +32,7 @@ run_decoy_match <- list(
 )
 
 get_decoy_dir <- function(run_number) {
-  search_directory <- "/mnt/gtklab01/xiaoqing/decoy"
+  search_directory <- "/mnt/gtklab01/xiaoqing/Z-decoy"
   decoy_number <- run_decoy_match[[run_number]]
   decoy_dir <- glue::glue("{search_directory}/{decoy_number}")
   info(logger,glue("You have set your decoy directory as {decoy_dir}"))

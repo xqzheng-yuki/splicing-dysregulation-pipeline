@@ -1,0 +1,24 @@
+This Shiny app is designed to support interactive visualization and analysis of biological data, featuring customized plotting functions, guided interactivity, and additional utilities.
+
+**Main App**
+- shiny_vis.R: Entry point that sources all required scripts and runs the app.
+- ui.R: Defines the user interface layout and widgets.
+- server.R: Contains server-side logic, rendering outputs, and handling reactive expressions.
+
+**Plotting Logic**
+- major_plot_function.r: Main plotting logic and reusable plot functions.
+- plot_shiny.r: Shiny-specific plotting helpers for dynamic visualization.
+- dependent_bw.r: Functions for visualizing dependencies (possibly box/violin plots).
+- dependent_2.R: Alternate or extended version of the above, possibly testing different layouts or plot types.
+
+**Temporary App for BAM only**
+- dev_app.R
+- dev_ui.R
+- dev_server.R
+
+**Pending Integration**
+select_dire.R
+
+**To-Do**
+[ ] Merge select_dire.R into the main app for directory selection.
+[ ] Clean unused code or consolidate similar functions (dependent_bw.r vs dependent_2.R).

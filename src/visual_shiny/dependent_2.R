@@ -5,7 +5,7 @@ filter_bam_path <- function(path) {
   data_dir <- path
   bam_fileinfo <- expand_grid(tibble(treatment=rep(c("control","treatment"),each=4),
                                      group=c(control_group,treatment_group)),tag="d") |>
-    mutate(bam_path=glue::glue("{data_dir}/CTX_{group}_d.bam"))
+    mutate(bam_path=glue::glue("{data_dir}/CTX_{group}/d.sorted.bam"))
   return(bam_fileinfo)
 }
 filter_bw_path <- function(path) {
@@ -30,9 +30,8 @@ get_gene_name <- function(geneID){
 
 trackset <- function(goi){
   debug(logger,glue("You're now working on extracting tracks for visualization(II)."))
-  run_database <- "/mnt/gtklab01/xiaoqing/2025-01-14/filter"
+  run_database <- "/mnt/gtklab01/xiaoqing/star/result"
   run_decoy <- "/mnt/gtklab01/xiaoqing"
-  # bw_fileinfo <- filter_bw_path(run_database)
   bam_fileinfo <- filter_bam_path(run_database)
   # intron_data <- get_intron_bed(run_decoy)
   exon_data <- get_exon_bed(run_decoy)
@@ -62,37 +61,6 @@ trackset <- function(goi){
   show_track <- add_track(exon_track,show_track)
   debug(logger,glue("Added exon region track. There are {length(exon_track)} exon(s)."))
   debug(logger,glue("Length of show track now is {length(show_track)}"))
-  
-  ## track:: for bw
-  # control_bw_data <- merge_treatment_bw(selection_range = gr,
-  #                                       treatment_n = "control",
-  #                                       bwinfo = bw_fileinfo)
-  # ko_bw_data <- merge_treatment_bw(selection_range = gr,
-  #                                  treatment_n = "treatment",
-  #                                  bwinfo = bw_fileinfo)
-  # ylim <- get_ylim(first_set=control_bw_data,second_set=ko_bw_data)
-  # control_datatrack <- map(names(control_bw_data),
-  #                          function(n) {
-  #                            color <- control_shades[match(n,names(control_bw_data))]
-  #                            DataTrack(control_bw_data[[n]],
-  #                                      name = glue::glue("ctrl_{n}"),
-  #                                      type="polygon",
-  #                                      ylim = ylim,
-  #                                      fill.mountain=c("white",color),
-  #                                      col="black")
-  #                          })
-  # show_track <- add_track(control_datatrack,show_track)
-  # ko_datatrack <- map(names(ko_bw_data),
-  #                     function(n) {
-  #                       color <- treatment_shades[match(n,names(ko_bw_data))]
-  #                       DataTrack(ko_bw_data[[n]],
-  #                                 name = glue::glue("ko_{n}"),
-  #                                 type="polygon",
-  #                                 ylim = ylim,
-  #                                 fill.mountain=c("white",color),
-  #                                 col="black")
-  #                     })
-  # show_track <- add_track(ko_datatrack,show_track)
 
   ## track:: sashimi
   alignment_track <- pmap(bam_fileinfo, function(treatment,group,tag,bam_path) {

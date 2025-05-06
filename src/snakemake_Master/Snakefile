@@ -128,7 +128,7 @@ use rule unmap_id_separate from B as data_mashmap_separate with:
 
 use rule unmapped_sequence from B as analyze_get_sequence with:
     input:
-        name=os.path.join(output_dir,"salmon/{sample}/mashmap/aux_info/unmapped_{tag}.lst"),
+        name=os.path.join(output_dir,"salmon/{sample}/full/aux_info/unmapped_{tag}.lst"),
         r1=os.path.join(read_dir,"{sample}_1.fq.gz"),
         r2=os.path.join(read_dir,"{sample}_2.fq.gz"),
     output:

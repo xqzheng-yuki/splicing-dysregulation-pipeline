@@ -60,6 +60,8 @@ rule unmapped_sequence:
     output:
         unmapped_1=os.path.join(output_dir,"star/seq/{sample}_{tag}_1.fq"),
         unmapped_2=os.path.join(output_dir,"star/seq/{sample}_{tag}_2.fq"),
+    conda:
+        "envs/seqtk.yaml"
     log:
         "logs/unmapped_seqs/{sample}_{tag}.log",
     shell:
@@ -182,6 +184,8 @@ rule samplesheet:
             sample=samples.index,tag=tags)
     output:
         os.path.join(output_dir,"samples.tsv")
+    conda:
+        "envs/bigwig-samplesheet.yaml"
     log:
         "logs/result_samplefile.log",
     script:

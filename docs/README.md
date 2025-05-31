@@ -1,71 +1,96 @@
-# Waiting for more appropriate title
+# Splicing Dysregulation Pipeline
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Description
+**Author:** Xiaoqing Zheng  
+**Affiliation:** Department of Biological Sciences, National University of Singapore  
+**Supervisor:** Prof. Greg Tucker-Kellogg
 
-Utilize the special function from Salmon for less computation complex alternative splicing events detection. (?)
+## 🗺️ Overview
 
-## Workflow
-![](./sheme.png)
-**Optional: Set up**
+This repository contains a modular computational pipeline for detecting cryptic and non-canonical splicing dysregulation from RNA-seq data. It repurposes decoy-aware alignment signals—traditionally discarded as transcriptional noise—as a novel source of splicing insights.
 
-The workflow has dependences: seqtk, etc. (wait for append)
-```bash
-git clone https://github.com/lh3/seqtk.git
-cd seqtk
-make
+![whole workflow for main strucutre](./master_flow.png)
+The pipeline consists of three major stages:
+1. **Decoy generation** — building intergenic and intronic decoys from a reference genome.
+2. **Salmon Quantification** — using Salmon for selective alignment and extracting decoy-mapped reads.
+3. **Gene Count Analysis** — filtering and quantifying decoy-mapped reads to identify significant intronic enrichment at the gene level.
+4. **Re-alignment & Visualization** — validating signal using STAR, and visualizing with custom R and Shiny scripts.
+
+Originally developed and benchmarked using a TDP-43 knockout mouse model, the pipeline identifies differential intronic signal associated with disease conditions, offering an annotation-agnostic strategy for transcriptome analysis.
+
+## 🔬 Key Features
+- 🧬 **Decoy Sequence Design**: Generates intergenic and intronic decoys to trap transcriptional noise
+- ⚙️ **Selective Alignment with Salmon**: Isolates decoy-mapped reads for downstream analysis
+- 📉 **Differential Analysis**: Detects enriched intronic signals using DESeq2
+- 🧠 **Splice Junction Validation**: STAR-based realignment to confirm non-canonical junctions
+- 🧰 **Modular Snakemake Workflow**: Easily configurable and extendable
+
+## 📁 Project Structure
+
+```
+.
+├── docs/                  # Documentation and scheme diagram
+├── results/               # Sample output plots and supplementary PDFs
+├── src/                   # All source code (Python, R, Shell, Snakemake)
+│   ├── scripts/           # Shell scripts and analysis helpers
+│   ├── snakemake_Master/  # Core workflow and subworkflows
+│   ├── visual_shiny/      # Shiny-based visualizations
+│   └── further/, .qmd/.r  # Supplementary scripts and Quarto/R documents
+└── test_data/             # Example input test files
 ```
 
-### 1. Start with Salmon Selective Alignment
+## 🛠️ Installation & Requirements
 
-#### a. Create Decoy and Build Salmon Index
+All dependencies are managed through `conda`. A basic installation includes:
+- Python 3.10+
+- Snakemake
+- R and required packages (`shiny`, `Gviz`, `rtracklayer`, `DESeq2`, etc.)
 
-We adapted the default [decoy sequence generation process](https://github.com/COMBINE-lab/SalmonTools/blob/master/scripts/generateDecoyTranscriptome.sh) (`src/generateDecoyTranscriptome.sh`) to include intronic regions, where potential alternative splicing events may occur.  
+## 🚀 Usage
 
-The Salmon index building step is executed using a separate shell script (`salmon-index.sh`) to clearly separate workflow steps.
+1. **Prepare Input and Set Directory:**
+   - Place RNA-seq FASTQ files under the one directory.
+   - Update `config/samples.tsv` with your sample metadata.
+   - Manually update all relevant `config.yaml` files under:
+     - `src/snakemake_Master/config.yaml`
+     - `src/snakemake_Master/subworkflows/snakemake_dataprocess/config/config.yaml`
+     - `src/snakemake_Master/subworkflows/snakemake_decoygenerate/config/config.yaml`
+   - Ensure that all file paths (e.g., GTF file, genome FASTA, STAR genome index, chromosome size) and output directories reflect your system setup.
+   - These changes must be consistent across subworkflows to ensure smooth execution.
+ to reflect your local input/output directories, genome references, or desired pipeline behavior
+     - Ensure consistency across different steps
+     - If necessary, edit file paths for genome FASTA, GTF annotation, or output destinations
 
-Note: Refer to the script documentation for detailed instructions on setup, required inputs, and expected outputs.
+2. **Run Pipeline:**
+```bash
+snakemake --cores 8 --use-conda
+```
 
-#### b. Run Salmon Selective Alignment
+3. **View Output:**
+   - Intermediate quantification: `results/`
+   - Visualization and plots: `src/visual_shiny/`
 
-This step uses Salmon in selective alignment mode to process RNA-seq reads and identify unmapped regions where abnormal splicing events may occur. The script `src/salmon.sh` handles this step, producing:  
-- A quantification file.  
-- A supplementary file `unmapped_names.txt`, containing sequence IDs for decoy alignments, partial alignments, and unmapped sequences.  
+## 📊 Example Output
 
-Note: Refer to the `src/salmon.sh` script documentation for detailed instructions on setup, required inputs, and expected outputs.
+The following outputs can be generated using specific scripts in the repository:
 
-#### c. Extract Unmapped sequence
+- **Volcano Plot of Intronic Enrichment**  
+  → See: `src/scripts/tsv.r`
 
-This step processes unmapped sequences identified by Salmon Selective Alignment mode using the following scripts:
+- **STAR-based Splice Junction Visualization**  
+  → See: `src/visual_shiny/dependent_2.R` or `src/visual_shiny/shiny_vis.R`
 
-- `src/separate_unmapped.sh`: Groups sequences tagged as `d`, `m1`, `m2`, and `u` into separate `.lst` files.
+- **GO Term Enrichment Analysis**  
+  → See: `src/scripts/GO.R`
+  
+## 📚 Detailed Manual Execution
 
-- `src/filter_fastq.sh`: Utilizes [seqtk](https://github.com/lh3/seqtk) to extract sequences based on the unmapped names.
+For advanced users or developers who want to run individual steps outside the Snakemake workflow, please refer to [`docs/Detail_explanation.md`](docs/Detail_explanation.md) for a breakdown of the key stages, including input/output expectations and script-specific notes.
 
-Note: Refer to the script documentation for detailed instructions on setup, required inputs, and expected outputs.
+## 🙏 Acknowledgements
 
-### 2. Map Reads with STAR Alignment
+This work was completed under the supervision of **Prof. Greg Tucker-Kellogg** as part of the MSc Biotechnology Capstone Project at the National University of Singapore.
 
-The `src/star.sh` script uses the STAR aligner to map unmapped reads, producing a sorted BAM file and separate files based on read groups or unmapped tags.
-
-Note: 
-- Refer to the script documentation for detailed instructions on setup, required inputs, and expected outputs.
-- The STAR index used in this current project is part of previous project `STAR_v2.7.9a_index_mmusculus_gencode.vM29`, generated using GENCODE Primary assembly GRCm39 mouse FASTA (GRCm39.primary_assembly.genome.fa)
-
-### 3. Visualization Mapping result with GViz
-
-The `src/visualization_bw.qmd` file provides a Quarto document for visualizing mapping results using the GViz package in R. This step generates genome-level visualizations to better interpret the alignment and mapping data from the previous steps.
-- `src/visualization_bw.r`: Extracted core R script for generating plots. Use `source("src/visualization_bw.r")` to run directly.
-  - Generates PDFs:
-    1. Standard plot `plot_gene("GENE_NAME")`: ![GENE_NAME.pdf](../results/Ppp6c.pdf)
-    2. Supplemental plot `plot_supplymental("GENE_NAME")`: ![GENE_NAME_supplemental.pdf](../results/Ppp6c_supplymental.pdf)
-
-Note:
-- Need a Quarto-compatible environment to open the file.
-- Ensure that the necessary R libraries (e.g., GViz, GenomicRanges) are installed before running the visualization.
-- Customize parameters (e.g., file paths, regions) as needed.
-
-## Contact
-Author: Zheng Xiaoqing  
-Email: e1124735@u.nus.edu  
-Mentor: Greg Tucker-Kellogg  
-Email: dbsgtk@nus.edu.sg  
+## 📬 Contact
+For questions or collaboration inquiries:
+Xiaoqing Zheng [e1124735@u.nus.edu]; Greg Tucker-Kellogg [dbsgtk@nus.edu.sg]

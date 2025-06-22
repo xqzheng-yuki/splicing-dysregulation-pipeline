@@ -1,3 +1,7 @@
+# plot_tracks.R
+# Core plotting logic for building Gviz track objects, integrating genomic features,
+# coverage data, and alignments. Generates comprehensive visualizations for gene-level events.
+
 tracklist <- function(goi,run_number){
   debug(logger,glue("You're now working on extracting tracks for visualization."))
   run_database <- get_data_dir(run_number)

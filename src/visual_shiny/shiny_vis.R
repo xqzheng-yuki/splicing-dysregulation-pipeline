@@ -6,9 +6,9 @@ library(pryr)
 library(profvis)
 
 # Source function R script
-source("~/Capstone/src/visual_shiny/dependent_bw.r")
-source("~/Capstone/src/visual_shiny/plot_shiny.r")
-source("~/Capstone/src/visual_shiny/major_plot_function.r") 
+source("~/Capstone/src/visual_shiny/utils_data.R")
+source("~/Capstone/src/visual_shiny/global_init.R")
+source("~/Capstone/src/visual_shiny/plot_tracks.R") 
 
 source("~/Capstone/src/visual_shiny/ui.R")
 source("~/Capstone/src/visual_shiny/server.R")

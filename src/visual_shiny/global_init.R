@@ -1,9 +1,6 @@
-# File: visualize_mapping.R
-# Purpose: Visualize mapping shiny component 
-# Dependencies: tidyverse, rtracklayer, GenomicFeatures, Gviz, ensembldb, Rsamtools, GenomicAlignments, BRGenomics, randomcoloR
-# Inputs: bigwig files, GTF files
-# Note: This code file is extracted from visualization_bw.qmd, and slightly modified for shiny app.
-# please refer back for detailed information and explaination.
+# global_init.R
+# Initializes global settings, logging, database connections, and color schemes.
+# This script is sourced once at app launch to set up the environment for Shiny and plotting.
 
 ### Part0: Set up ###
 requiredCRAN <- c('tidyverse','log4r')

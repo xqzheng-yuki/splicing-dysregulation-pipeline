@@ -41,7 +41,7 @@ merge_treatment_bw <- function(selection_range,treatment_n,bwinfo=bw_fileinfo) {
   bw_data <- split(map(bwinfo$bw_path,import_bigwig,bw_selection=selection_range),
         bwinfo$tag)
   bw_range <- map(bw_data, ~ {
-                  mergeGRangesData(.x,exact_overlaps = TRUE)
+                  BRGenomics::mergeGRangesData(.x,exact_overlaps = TRUE)
     })
   return(bw_range)
 }

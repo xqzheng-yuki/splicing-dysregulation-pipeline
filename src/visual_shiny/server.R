@@ -38,16 +38,16 @@ server <- function(input, output, session) {
     print(paste("Object size of current track:", object.size(current)))
     # Plot for main
     plot_storage$classic <- {
-      plotplot(current()[c(1:12,41)],gene_id())
+      plotplot(current()[c(1,2,5:12,41)],gene_id())
       recordPlot()
     }
     # plot_storage$classic
     # Plot for additional
     plot_storage$dataset <- {
       subset_data <- switch(input$dataset,
-                            "d_set" = current()[c(17:24, 41)],
-                            "m1_set" = current()[c(25:32, 41)],
-                            "m2_set" = current()[c(33:40, 41)])
+                            "d_set" = current()[c(1,2,17:24, 41)],
+                            "m1_set" = current()[c(1,2,25:32, 41)],
+                            "m2_set" = current()[c(1,2,33:40, 41)])
       plotplot(subset_data,gene_id())
       recordPlot()
     }

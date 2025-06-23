@@ -119,3 +119,24 @@ length(mash_m2)
 length(intersect(mash_u,uniq_re))
 length(mash_u)
 length(uniq_re)
+
+spliceat_sign <- g_res  %>%
+dplyr::filter(!is.na(log2FoldChange) & !is.na(padj) & padj > 0) %>%
+dplyr::filter(!is.na(padj) & padj < max_padj & (log2FoldChange > min_lfc | log2FoldChange < -min_lfc) ) %>%
+arrange(padj)
+spliceat_sign$chr <- gsub("\\..*","",spliceat_sign$chr)
+
+grid.newpage()
+venn <- draw.pairwise.venn(area1 = length(all_significant$chr),
+                           area2 = length(spliceat_sign$chr),
+                           cross.area = length(intersect(all_significant$chr,spliceat_sign$chr)),
+                           category = c("DECAP","SpliCeAT"),
+                           fill = c('#bde4f4','#ff7f50'),
+                           lty = "solid",
+                           cex=1.2,cat.cex = 1.2,
+                           cat.pos = c(0,180),
+                           scaled = TRUE,margin=0.1)
+
+grid.text(paste("There are ", length(intersect(all_significant$chr,spliceat_sign$chr)), " genes and make up of ",percent(length(intersect(all_significant$chr,spliceat_sign$chr))/length(spliceat_sign$chr))," SpliCeAT datasedet.", sep = ""), 
+          x = 0.1, y = 0.9, just="left",
+          gp = gpar(fontsize = 10))

@@ -19,7 +19,8 @@ tracklist <- function(goi,run_number){
                              start=start(gr),
                              end=end(gr),
                              cex.group=0.4,
-                             showId=TRUE)
+                             showId=TRUE,
+                             stacking = "dense")
     show_track <- add_track(grTrack)
     debug(logger,glue("Added transcriptome track."))
     debug(logger,glue("Length of show track now is {length(show_track)}"))
@@ -147,6 +148,7 @@ tracklist <- function(goi,run_number){
 
 plotplot <- function(tracklist,goi) {
     gr <- enlarge_gr(goi)
+    trxn_num <- length(transcripts(GRCm39, filter = GeneIdFilter(goi)))
     plotTracks(tracklist, cex.sampleNames = 0.8, from = start(gr), to = end(gr), main = gr$symbol, fontface.main = 1.5, fontsize = 15,
-               sizes = c(1, 1, rep(5, length(tracklist) - 3), 1))
+               sizes = c(trxn_num, 2, rep(5, length(tracklist) - 3), 2))
 }
